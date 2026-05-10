@@ -1,0 +1,42 @@
+# Exercise Menu
+
+Use this as the instructor-facing menu of things participants can solve during the live session or take offline.
+
+## Live Exercises
+
+### Notebook 1: Reading SPINE Output
+
+- Inspect one `RecoParticle` with `as_dict()`. Pick three fields and explain what each one means physically.
+- Use `help(reco_particles[0])` and the RTD API browser to find where one field is documented.
+- Build a one-row summary for one `RecoInteraction`: particle count, primary count, vertex, topology, and primary PIDs.
+- Open the same entry in Spinal Tap and connect one visual feature to one table field.
+
+### Notebook 2: Michel Mini-Analysis
+
+- Change `ATTACH_THRESHOLD_CM` from 3 cm to 1 cm or 5 cm and explain how the candidate count changes.
+- Raise `MICHEL_MIN_POINTS` and identify what kind of candidates disappear first.
+- Open one selected candidate with no truth match in Spinal Tap and classify the failure mode.
+- Open one true Michel with no reco match and decide whether it is a segmentation, clustering, matching, or threshold problem.
+
+### Production and Config
+
+- Trace one top-level config through its `include` files and identify which component owns IO, weights, and post-processing.
+- Find a `!download` weight and explain where it will be cached.
+- Read a `data` or `lite` modifier and list exactly what it removes.
+- Dry-run one `submit.py` command and find where the generated job metadata would live.
+
+### Notebook 3: Validation Teaser
+
+- Build one PID confusion matrix and identify the dominant confusion mode.
+- Compare a validation failure to the event display and decide whether the metric is diagnosing the same thing you see visually.
+
+## Offline Extensions
+
+- Turn the Michel mini-analysis into a detector-specific calibration note with tuned thresholds.
+- Add a parent-muon stopping requirement using the distance between the candidate and a track endpoint.
+- Estimate a Michel energy spectrum using `depositions_sum` or `ke` and compare matched reco/truth distributions.
+- Split Michel efficiency by containment, candidate size, detector region, or module boundary.
+- Build a curated Spinal Tap gallery of clean Michels and recurring failure modes.
+- Write a small `spine-prod` modifier that makes an analysis-lite output file.
+- Compare a `latest` production config to a pinned versioned config and document what changed.
+- Add a CI-style config check that loads a config and preloads all `!download` assets.

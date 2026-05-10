@@ -1,0 +1,7 @@
+spine-workshop-2026/
+spine-prod/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+spinal_tap_event_list.csv
+spinal_tap_michel_event_list.csv

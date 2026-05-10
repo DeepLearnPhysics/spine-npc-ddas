@@ -1,0 +1,23 @@
+# Minimal readback configuration for reconstructed SPINE HDF5 files.
+# Notebooks replace DATA_PATH at runtime, usually from SPINE_TUTORIAL_H5.
+io:
+  reader:
+    name: hdf5
+    file_keys: DATA_PATH
+
+build:
+  mode: both
+  units: cm
+  fragments: false
+  particles: true
+  interactions: true
+
+post:
+  match_particles:
+    matching_mode: true_to_pred
+    min_overlap: 0.0
+    overlap_mode: iou
+  match_interactions:
+    matching_mode: true_to_pred
+    min_overlap: 0.0
+    overlap_mode: iou
