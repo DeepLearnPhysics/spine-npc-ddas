@@ -41,7 +41,6 @@ def notebook(cells: list[dict]) -> dict:
 
 
 COMMON_SETUP = r'''
-import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -51,17 +50,29 @@ import yaml
 
 from spine.driver import Driver
 
-DATA_PATH = os.environ.get("SPINE_TUTORIAL_H5", "")
-CONFIG_PATH = Path("../config/read_spine_hdf5.yaml")
+# Edit these two lines for the sample you want to inspect.
+# DATA_PATH may be a single HDF5 file or a glob such as "/path/to/reco/*.h5".
+DATA_PATH = "CHANGE_ME/reconstructed_spine_file.h5"
 
-if not DATA_PATH:
+# Use None if no detector geometry is needed. Common examples:
+# "icarus", "sbnd", "2x2", "nd-lar", "protodune-sp", "protodune-vd"
+DETECTOR = None
+
+CONFIG_CANDIDATES = [
+    Path("../config/read_spine_hdf5.yaml"),
+    Path("tutorials/config/read_spine_hdf5.yaml"),
+]
+CONFIG_PATH = next((path for path in CONFIG_CANDIDATES if path.exists()), None)
+
+if DATA_PATH.startswith("CHANGE_ME"):
     raise RuntimeError(
-        "Set SPINE_TUTORIAL_H5 to the reconstructed SPINE HDF5 file provided for the tutorial."
+        "Set DATA_PATH at the top of this notebook to the tutorial HDF5 file or file glob."
     )
+if CONFIG_PATH is None:
+    raise RuntimeError("Could not find tutorials/config/read_spine_hdf5.yaml")
 
 cfg_text = CONFIG_PATH.read_text().replace("DATA_PATH", DATA_PATH)
 cfg = yaml.safe_load(cfg_text)
-DETECTOR = os.environ.get("SPINE_TUTORIAL_DETECTOR", "")
 if DETECTOR:
     cfg["geo"] = {"detector": DETECTOR}
 driver = Driver(cfg)
@@ -92,21 +103,15 @@ This notebook is the highest-priority hands-on material for the short session. I
 
 Run inside `ghcr.io/deeplearnphysics/spine:latest`.
 
-Set `SPINE_TUTORIAL_H5` before launching Jupyter:
+Set the file path in the first code cell:
 
-```bash
-export SPINE_TUTORIAL_H5=/path/to/reconstructed_spine_file.h5
+```python
+DATA_PATH = "/path/to/reconstructed_spine_file.h5"
+DETECTOR = "icarus"  # or None
 ```
 
 The file should contain reconstructed particles/interactions and, for validation cells, truth objects.
-
-Optional:
-
-```bash
-export SPINE_TUTORIAL_DETECTOR=icarus
-```
-
-Use this only when a detector geometry is needed for visualization or post-processing helpers."""
+Use `DETECTOR = None` when detector geometry is not needed for the exercise."""
         ),
         code(COMMON_SETUP),
         md(
@@ -279,7 +284,7 @@ A Michel electron is an electron from a stopped muon decay. In reconstructed SPI
 This is not a final detector-specific Michel selection. It is a compact analysis skeleton that works across detectors as long as the HDF5 file contains reconstructed particles."""
         ),
         code(
-            """N_ENTRIES = min(len(driver), int(os.environ.get("SPINE_TUTORIAL_MAX_ENTRIES", "50")))
+            """N_ENTRIES = min(len(driver), 50)
 print(f"Scanning {N_ENTRIES} entries")"""
         ),
         code(
@@ -316,10 +321,10 @@ def deposition_sum(p):
     return float(np.sum(depositions)) if depositions is not None else np.nan"""
         ),
         code(
-            """MUON_MIN_POINTS = int(os.environ.get("SPINE_TUTORIAL_MUON_MIN_POINTS", "20"))
-ATTACH_THRESHOLD_CM = float(os.environ.get("SPINE_TUTORIAL_ATTACH_THRESHOLD_CM", "3.0"))
-MICHEL_MIN_POINTS = int(os.environ.get("SPINE_TUTORIAL_MICHEL_MIN_POINTS", "5"))
-MATCH_THRESHOLD = float(os.environ.get("SPINE_TUTORIAL_MATCH_IOU", "0.1"))
+            """MUON_MIN_POINTS = 20
+ATTACH_THRESHOLD_CM = 3.0
+MICHEL_MIN_POINTS = 5
+MATCH_THRESHOLD = 0.1
 
 print({
     "muon_min_points": MUON_MIN_POINTS,
@@ -551,8 +556,8 @@ This is the compressed version of the PID and primary/vertex validation notebook
         code(
             """from sklearn.metrics import confusion_matrix
 
-N_ENTRIES = min(len(driver), int(os.environ.get("SPINE_TUTORIAL_MAX_ENTRIES", "100")))
-MATCH_THRESHOLD = float(os.environ.get("SPINE_TUTORIAL_MATCH_IOU", "0.1"))
+N_ENTRIES = min(len(driver), 100)
+MATCH_THRESHOLD = 0.1
 print(f"Validating {N_ENTRIES} entries with overlap threshold {MATCH_THRESHOLD}")"""
         ),
         code(

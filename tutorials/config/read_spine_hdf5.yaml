@@ -1,5 +1,6 @@
 # Minimal readback configuration for reconstructed SPINE HDF5 files.
-# Notebooks replace DATA_PATH at runtime, usually from SPINE_TUTORIAL_H5.
+# Notebooks replace DATA_PATH at runtime from the DATA_PATH variable
+# defined at the top of each notebook.
 io:
   reader:
     name: hdf5
