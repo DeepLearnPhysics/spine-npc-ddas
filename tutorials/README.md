@@ -34,6 +34,7 @@ Inference is intentionally not part of the timed exercise. The first notebook in
 
 | Time | Segment | Material |
 | --- | --- | --- |
+| Before session | EAF setup | `00_eaf_setup.md` |
 | 0:00-0:30 | Lecture intro | SPINE object hierarchy, DUNE use cases, common failure modes |
 | 0:30-1:05 | Notebook 1 | `notebooks/01_read_spine_output.ipynb` |
 | 1:05-1:25 | Spinal Tap teaser | Event display from the same HDF5 file |
@@ -47,6 +48,9 @@ Inference is intentionally not part of the timed exercise. The first notebook in
 If the hands-on block is closer to 2 hours, treat Notebook 3 as an offline extension and keep only the production/config overview plus one validation plot.
 
 ## Notebook Scope
+
+0. `00_eaf_setup.md`
+   EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, and optional Spinal Tap setup.
 
 1. `01_read_spine_output.ipynb`
    Opens a reconstructed HDF5 file with `spine.driver.Driver`, inspects `RecoParticle`, `TruthParticle`, `RecoInteraction`, and `TruthInteraction` objects, and builds small tables of object fields.
