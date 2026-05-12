@@ -40,7 +40,7 @@ def notebook(cells: list[dict]) -> dict:
     }
 
 
-COMMON_SETUP = r'''
+SETUP_IMPORTS = r'''
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -49,7 +49,9 @@ import pandas as pd
 import yaml
 
 from spine.driver import Driver
+'''
 
+SETUP_SAMPLE = r'''
 # Tutorial data convention at FNAL/EAF:
 #   LARCV_DATA_DIR/DETECTOR/DETECTOR_TAG.root
 #   HDF5_DATA_DIR/DETECTOR/DETECTOR_TAG_spine.hdf5
@@ -65,7 +67,10 @@ GEOMETRY = None if DETECTOR == "generic" else DETECTOR
 
 LARCV_PATH = LARCV_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}.root"
 DATA_PATH = HDF5_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}_spine.hdf5"
+print(DATA_PATH)
+'''
 
+SETUP_DRIVER = r'''
 CONFIG_CANDIDATES = [
     Path("../config/read_spine_hdf5.yaml"),
     Path("tutorials/config/read_spine_hdf5.yaml"),
@@ -87,6 +92,8 @@ if GEOMETRY:
     print(f"Detector geometry: {GEOMETRY}")
 print(f"Companion LArCV path: {LARCV_PATH}")
 '''
+
+COMMON_SETUP_CELLS = [code(SETUP_IMPORTS), code(SETUP_SAMPLE), code(SETUP_DRIVER)]
 
 
 def write(name: str, cells: list[dict]) -> None:
@@ -131,7 +138,7 @@ LARCV_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}.root"
 
 The HDF5 file should contain reconstructed particles/interactions and, for validation cells, truth objects."""
         ),
-        code(COMMON_SETUP),
+        *COMMON_SETUP_CELLS,
         md(
             """## Where to look things up
 
@@ -143,20 +150,42 @@ This tutorial deliberately pauses on small snippets. When a field or class is un
 
 The point is not to memorize every field. The point is to learn how to inspect the object model without guessing."""
         ),
+        md(
+            """## Read One Entry
+
+Start with exactly one event entry. The first thing to learn is the structure of the returned dictionary."""
+        ),
         code(
             """ENTRY = 0
 data = driver.process(entry=ENTRY)
-print(data.keys())
-
-reco_particles = data.get("reco_particles", [])
+list(data)"""
+        ),
+        md(
+            """Now pull out the four high-level collections we will use. Pause here and check the counts before inspecting individual objects."""
+        ),
+        code(
+            """reco_particles = data.get("reco_particles", [])
 truth_particles = data.get("truth_particles", [])
 reco_interactions = data.get("reco_interactions", [])
-truth_interactions = data.get("truth_interactions", [])
-
-print(f"Reco particles: {len(reco_particles)}")
-print(f"Truth particles: {len(truth_particles)}")
-print(f"Reco interactions: {len(reco_interactions)}")
-print(f"Truth interactions: {len(truth_interactions)}")"""
+truth_interactions = data.get("truth_interactions", [])"""
+        ),
+        code(
+            """pd.DataFrame(
+    {
+        "collection": [
+            "reco_particles",
+            "truth_particles",
+            "reco_interactions",
+            "truth_interactions",
+        ],
+        "count": [
+            len(reco_particles),
+            len(truth_particles),
+            len(reco_interactions),
+            len(truth_interactions),
+        ],
+    }
+)"""
         ),
         md(
             """## Inspect one object
@@ -166,84 +195,103 @@ SPINE objects expose Python attributes and usually an `as_dict()` method. Start 
 Pause on the line `d = obj.as_dict()`: it is the fastest way to discover the analysis-facing fields saved in this file."""
         ),
         code(
-            """def compact_dict(obj, max_items=40):
+            """particle = reco_particles[0]
+interaction = reco_interactions[0]
+
+type(particle), type(interaction)"""
+        ),
+        code(
+            """list(particle.as_dict())"""
+        ),
+        code(
+            """# Try one of these during the tutorial.
+# help(particle)
+# dir(particle)
+# particle.as_dict().keys()"""
+        ),
+        code(
+            """def preview_value(value):
+    if isinstance(value, np.ndarray):
+        return f"array shape={value.shape} dtype={value.dtype}"
+    return repr(value)[:120]
+
+def compact_dict(obj, max_items=25):
     if hasattr(obj, "as_dict"):
         d = obj.as_dict()
     else:
         d = vars(obj)
-    rows = []
-    for key, value in list(d.items())[:max_items]:
-        if isinstance(value, np.ndarray):
-            rows.append((key, f"array shape={value.shape} dtype={value.dtype}"))
-        else:
-            rows.append((key, repr(value)[:120]))
+    rows = [(key, preview_value(value)) for key, value in list(d.items())[:max_items]]
     return pd.DataFrame(rows, columns=["field", "value"])
 
-if reco_particles:
-    display(compact_dict(reco_particles[0]))
-if reco_interactions:
-    display(compact_dict(reco_interactions[0]))"""
+compact_dict(particle)"""
         ),
         code(
-            """# Try this on one object during the tutorial.
-# help(reco_particles[0])
-# dir(reco_particles[0])
-# reco_particles[0].as_dict().keys()"""
+            """compact_dict(interaction)"""
+        ),
+        md(
+            """## Use SPINE Labels
+
+Do not hard-code PID or semantic-shape labels in analysis notebooks. Import the labels from SPINE so the notebook follows the installed package."""
         ),
         code(
-            """PID_LABELS = {
-    -1: "unknown",
-    0: "photon",
-    1: "electron",
-    2: "muon",
-    3: "pion",
-    4: "proton",
-    5: "kaon",
-}
+            """try:
+    from spine.constants import PID_LABELS, SHAPE_LABELS
+except ImportError:
+    from spine.utils.globals import PID_LABELS, SHAPE_LABELS"""
+        ),
+        code(
+            """display(pd.Series(SHAPE_LABELS, name="shape label").to_frame())
+display(pd.Series(PID_LABELS, name="PID label").to_frame())"""
+        ),
+        md(
+            """## Build a Particle Table
 
-SHAPE_LABELS = {
-    -1: "unknown",
-    0: "shower",
-    1: "track",
-    2: "michel",
-    3: "delta",
-    4: "low-energy",
-}
-
-def particle_row(p):
-    return {
-        "id": getattr(p, "id", None),
-        "interaction_id": getattr(p, "interaction_id", None),
-        "pid": getattr(p, "pid", None),
-        "pid_label": PID_LABELS.get(getattr(p, "pid", None), getattr(p, "pid", None)),
-        "shape": getattr(p, "shape", None),
-        "shape_label": SHAPE_LABELS.get(getattr(p, "shape", None), getattr(p, "shape", None)),
-        "primary": getattr(p, "is_primary", None),
-        "size": getattr(p, "size", None),
-        "depositions_sum": getattr(p, "depositions_sum", np.nan),
-        "start_point": getattr(p, "start_point", None),
-        "end_point": getattr(p, "end_point", None),
-    }
-
-particle_df = pd.DataFrame([particle_row(p) for p in reco_particles])
+Pick a short list of fields first. This is the analysis contract you are choosing to rely on."""
+        ),
+        code(
+            """PARTICLE_FIELDS = [
+    "id",
+    "interaction_id",
+    "pid",
+    "shape",
+    "is_primary",
+    "size",
+    "depositions_sum",
+]"""
+        ),
+        code(
+            """particle_df = pd.DataFrame(
+    [{field: getattr(p, field, None) for field in PARTICLE_FIELDS} for p in reco_particles]
+)
+particle_df["pid_label"] = particle_df["pid"].map(PID_LABELS)
+particle_df["shape_label"] = particle_df["shape"].map(SHAPE_LABELS)
 particle_df"""
         ),
-        code(
-            """def interaction_row(ia):
-    particles = getattr(ia, "particles", [])
-    primary_particles = [p for p in particles if getattr(p, "is_primary", False)]
-    return {
-        "id": getattr(ia, "id", None),
-        "nu_id": getattr(ia, "nu_id", None),
-        "size": getattr(ia, "size", None),
-        "vertex": getattr(ia, "vertex", None),
-        "n_particles": len(particles),
-        "n_primary": len(primary_particles),
-        "primary_pids": [getattr(p, "pid", None) for p in primary_particles],
-        "topology": getattr(ia, "topology", None),
-    }
+        md(
+            """## Build an Interaction Table
 
-interaction_df = pd.DataFrame([interaction_row(ia) for ia in reco_interactions])
+Interactions group particles. The next table summarizes multiplicities and primary content without digging into every particle yet."""
+        ),
+        code(
+            """def primary_particles(interaction):
+    return [p for p in getattr(interaction, "particles", []) if getattr(p, "is_primary", False)]"""
+        ),
+        code(
+            """interaction_df = pd.DataFrame(
+    [
+        {
+            "id": getattr(ia, "id", None),
+            "nu_id": getattr(ia, "nu_id", None),
+            "size": getattr(ia, "size", None),
+            "vertex": getattr(ia, "vertex", None),
+            "n_particles": len(getattr(ia, "particles", [])),
+            "n_primary": len(primary_particles(ia)),
+            "primary_pids": [getattr(p, "pid", None) for p in primary_particles(ia)],
+            "topology": getattr(ia, "topology", None),
+        }
+        for ia in reco_interactions
+    ]
+)
 interaction_df"""
         ),
         md(
@@ -288,7 +336,7 @@ Goal: build a detector-agnostic Michel electron candidate table from reconstruct
 
 Michel electrons are useful here because the exercise is high-level and physics-facing, but still forces us to reason about SPINE object fields: particle shape, interaction membership, particle size, deposited charge, endpoints, matching, and topology."""
         ),
-        code(COMMON_SETUP),
+        *COMMON_SETUP_CELLS,
         md(
             """## Analysis idea
 
@@ -306,7 +354,10 @@ This is not a final detector-specific Michel selection. It is a compact analysis
 print(f"Scanning {N_ENTRIES} entries")"""
         ),
         code(
-            """from spine.utils.globals import MICHL_SHP, TRACK_SHP, SHAPE_LABELS
+            """try:
+    from spine.constants import MICHL_SHP, TRACK_SHP, SHAPE_LABELS
+except ImportError:
+    from spine.utils.globals import MICHL_SHP, TRACK_SHP, SHAPE_LABELS
 
 print(f"Michel shape id: {MICHL_SHP} -> {SHAPE_LABELS[MICHL_SHP]}")
 print(f"Track shape id:  {TRACK_SHP} -> {SHAPE_LABELS[TRACK_SHP]}")"""
@@ -570,7 +621,7 @@ Goal: validate the analysis-facing objects with matching, confusion matrices, an
 
 This is the compressed version of the PID and primary/vertex validation notebooks from the full workshop."""
         ),
-        code(COMMON_SETUP),
+        *COMMON_SETUP_CELLS,
         code(
             """from sklearn.metrics import confusion_matrix
 
