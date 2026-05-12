@@ -50,13 +50,21 @@ import yaml
 
 from spine.driver import Driver
 
-# Edit these two lines for the sample you want to inspect.
-# DATA_PATH may be a single HDF5 file or a glob such as "/path/to/reco/*.h5".
-DATA_PATH = "CHANGE_ME/reconstructed_spine_file.h5"
+# Tutorial data convention at FNAL/EAF:
+#   LARCV_DATA_DIR/DETECTOR/DETECTOR_TAG.root
+#   HDF5_DATA_DIR/DETECTOR/DETECTOR_TAG_spine.hdf5
+LARCV_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/larcv")
+HDF5_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/reco")
 
-# Use None if no detector geometry is needed. Common examples:
-# "icarus", "sbnd", "2x2", "nd-lar", "protodune-sp", "protodune-vd"
-DETECTOR = None
+# Edit these two lines to switch samples.
+# Common detector examples: "icarus", "sbnd", "2x2", "nd-lar",
+# "protodune-sp", "protodune-vd"
+DETECTOR = "generic"
+TAG = "tutorial"
+GEOMETRY = None if DETECTOR == "generic" else DETECTOR
+
+LARCV_PATH = LARCV_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}.root"
+DATA_PATH = HDF5_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}_spine.hdf5"
 
 CONFIG_CANDIDATES = [
     Path("../config/read_spine_hdf5.yaml"),
@@ -64,22 +72,20 @@ CONFIG_CANDIDATES = [
 ]
 CONFIG_PATH = next((path for path in CONFIG_CANDIDATES if path.exists()), None)
 
-if DATA_PATH.startswith("CHANGE_ME"):
-    raise RuntimeError(
-        "Set DATA_PATH at the top of this notebook to the tutorial HDF5 file or file glob."
-    )
+DATA_PATH = str(DATA_PATH)
 if CONFIG_PATH is None:
     raise RuntimeError("Could not find tutorials/config/read_spine_hdf5.yaml")
 
 cfg_text = CONFIG_PATH.read_text().replace("DATA_PATH", DATA_PATH)
 cfg = yaml.safe_load(cfg_text)
-if DETECTOR:
-    cfg["geo"] = {"detector": DETECTOR}
+if GEOMETRY:
+    cfg["geo"] = {"detector": GEOMETRY}
 driver = Driver(cfg)
 print(f"Opened {DATA_PATH}")
 print(f"Entries: {len(driver)}")
-if DETECTOR:
-    print(f"Detector geometry: {DETECTOR}")
+if GEOMETRY:
+    print(f"Detector geometry: {GEOMETRY}")
+print(f"Companion LArCV path: {LARCV_PATH}")
 '''
 
 
@@ -103,15 +109,27 @@ This notebook is the highest-priority hands-on material for the short session. I
 
 Run inside `ghcr.io/deeplearnphysics/spine:latest`.
 
-Set the file path in the first code cell:
+Set the sample in the first code cell:
 
 ```python
-DATA_PATH = "/path/to/reconstructed_spine_file.h5"
-DETECTOR = "icarus"  # or None
+DETECTOR = "generic"
+TAG = "tutorial"
+GEOMETRY = None if DETECTOR == "generic" else DETECTOR
 ```
 
-The file should contain reconstructed particles/interactions and, for validation cells, truth objects.
-Use `DETECTOR = None` when detector geometry is not needed for the exercise."""
+By convention, the notebooks read:
+
+```python
+HDF5_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}_spine.hdf5"
+```
+
+and record the companion LArCV path:
+
+```python
+LARCV_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}.root"
+```
+
+The HDF5 file should contain reconstructed particles/interactions and, for validation cells, truth objects."""
         ),
         code(COMMON_SETUP),
         md(

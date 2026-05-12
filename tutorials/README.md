@@ -10,14 +10,23 @@ Expected container:
 ghcr.io/deeplearnphysics/spine:latest
 ```
 
-The notebooks assume a reconstructed SPINE HDF5 file is already available. Set it at the top of each notebook:
+The notebooks assume reconstructed SPINE HDF5 files and companion LArCV files are available under a common tutorial directory. At FNAL/EAF the defaults are:
 
 ```python
-DATA_PATH = "/path/to/reconstructed_spine_file.h5"
-DETECTOR = "icarus"  # or None
+LARCV_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/larcv")
+HDF5_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/reco")
+DETECTOR = "generic"
+TAG = "tutorial"
 ```
 
-This is intentionally notebook-local rather than hidden in the Jupyter kernel launch script. It makes the EAF/Apptainer setup easier to inspect and lets students switch detector geometry explicitly.
+The expected structure is:
+
+```text
+HDF5_DATA_DIR/DETECTOR/DETECTOR_TAG_spine.hdf5
+LARCV_DATA_DIR/DETECTOR/DETECTOR_TAG.root
+```
+
+This is intentionally notebook-local rather than hidden in the Jupyter kernel launch script. It makes the EAF/Apptainer setup easier to inspect and lets students switch detector/tag/geometry explicitly.
 
 Inference is intentionally not part of the timed exercise. The first notebook includes a short discussion cell pointing to `spine-prod` as the production layer that owns validated inference configs, model weights, and campaign bookkeeping.
 
