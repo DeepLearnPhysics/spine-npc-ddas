@@ -69,7 +69,7 @@ If the hands-on block is closer to 2 hours, treat Notebook 3 as an offline exten
 - `spine-prod/README.md`
 - `spine-prod/QUICKREF.md`
 - `spine-prod/config/infer/*`
-- `spine-prod/spine/src/spine/config/README.md`
+- SPINE config documentation from the packaged/runtime SPINE release
 
 The original workshop covers a week of material. This sequence deliberately leaves out training, detailed calorimetry, shower dE/dx, and full-chain inference so the session stays focused on reading and using SPINE analysis objects.
 

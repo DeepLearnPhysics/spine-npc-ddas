@@ -7,8 +7,52 @@ This is a terminal-oriented tutorial rather than a notebook. The useful activity
 Useful references while working:
 
 - SPINE API browser: https://spine.readthedocs.io
-- Local config docs in `spine-prod/spine/src/spine/config/README.md`
+- `spine-prod` README and `QUICKREF.md`
+- SPINE config docs in the installed/container SPINE package
 - Python helpers: `help(load_config_file)`, `help(Driver)`, `dir(cfg_object)`
+
+## Production Runtime Model
+
+As of `spine-prod` 0.5.0+, production jobs no longer rely on a bundled SPINE git submodule as the normal runtime. Instead, `spine-prod` is the production orchestrator and SPINE itself is supplied by a tagged pre-packaged container image.
+
+The default runtime is a SPINE image from:
+
+```text
+ghcr.io/deeplearnphysics/spine:<version>
+```
+
+For example, recent `spine-prod` releases default to a matching Shifter-style tag such as:
+
+```bash
+docker:ghcr.io/deeplearnphysics/spine:0.12.0
+```
+
+and a site-local Singularity/Apptainer image path such as:
+
+```bash
+/sdf/data/neutrino/images/spine_v0-12-0.sif
+```
+
+The container packages SPINE, OpT0Finder, and runtime dependencies. Batch jobs invoke the `spine` executable from inside the configured container.
+
+The important environment variables are set by `source configure.sh` and can be overridden before sourcing:
+
+```bash
+export SPINE_CONTAINER_VERSION=0.12.0
+export SPINE_CONTAINER_PATH=/path/to/spine_v0-12-0.sif
+source configure.sh
+```
+
+Useful runtime variables:
+
+- `SPINE_CONTAINER_VERSION`: container release version, without a leading `v`.
+- `SPINE_CONTAINER_TAG`: registry image tag, typically `docker:ghcr.io/deeplearnphysics/spine:<version>`.
+- `SPINE_CONTAINER_PATH`: local `.sif` image used by Singularity/Apptainer-capable sites.
+- `SPINE_CONTAINER_RUNTIME_BIN`: optional explicit runtime executable, useful on EAF when Apptainer comes from CVMFS.
+- `SPINE_CONTAINER_RUNTIME_ARGS`: optional extra Apptainer/Singularity flags.
+- `SPINE_CONTAINER_PLATFORM`: Docker/Podman platform override for interactive fallback.
+
+Live question: what should an analysis note record now: a SPINE git checkout, or the `spine-prod` commit plus the exact SPINE container version/tag?
 
 ## Live Exercise 1: Find the Config Stack
 
@@ -37,6 +81,15 @@ Read this as a versioned recipe:
 - `post`: post-processing, object builders, matching, and analysis-facing products
 
 Live question: which file would you edit or override to change the input file list? Which file owns the model weights?
+
+Current shorthand requests also work:
+
+```bash
+./submit.py --config infer/generic --source /path/to/input.root --dry-run
+./submit.py --config infer/icarus/latest --source /path/to/input.root --dry-run
+```
+
+These generate a concrete composite config at submission time. That generated config is part of the production provenance.
 
 ## Live Exercise 2: Read an Override Block
 
@@ -102,7 +155,7 @@ Use `submit.py --dry-run` to inspect what would be submitted without launching j
 
 ```bash
 ./submit.py \
-  --config infer/generic/full_chain_240805.yaml \
+  --config infer/generic/latest \
   --source /path/to/input.root \
   --profile s3df_ampere \
   --dry-run
@@ -112,9 +165,39 @@ For a real small test, use interactive mode:
 
 ```bash
 ./submit.py -I \
-  --config infer/generic/full_chain_240805.yaml \
+  --config infer/generic/latest \
   --source /path/to/input.root
 ```
+
+Interactive mode normally uses the `spine` executable on `PATH`. If that is unavailable, it can fall back to the configured container. You can force container-backed interactive execution:
+
+```bash
+./submit.py -I \
+  --interactive-runtime container \
+  --config infer/generic/latest \
+  --source /path/to/input.root \
+  --set base.world_size=0
+```
+
+On EAF, the Apptainer executable and extra runtime flags may need to be explicit:
+
+```bash
+export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/eaf.opensciencegrid.org/apptainer/bin/apptainer
+export SPINE_CONTAINER_RUNTIME_ARGS="--env LD_PRELOAD= --env LC_ALL=C.UTF-8"
+```
+
+For local debugging against an unreleased SPINE checkout, `spine-prod` still has an escape hatch:
+
+```bash
+./submit.py \
+  --spine-path /path/to/spine \
+  -I --interactive-runtime local \
+  --config infer/generic/latest \
+  --source /path/to/input.root \
+  --set base.world_size=0
+```
+
+That is a debugging path, not the default production model.
 
 Useful production switches:
 
@@ -124,6 +207,9 @@ Useful production switches:
 - `--apply-mods data lite`: compose config modifiers
 - `--list-mods CONFIG`: inspect available modifiers
 - `--preload`: resolve `!download` assets before job submission
+- `--set key=value`: override SPINE config values at submission time
+- `--interactive-runtime local|container`: choose local or container-backed interactive execution
+- `--spine-path /path/to/spine`: use an unreleased checkout for debugging
 
 ## `spine.config` Cheat Sheet
 
@@ -157,15 +243,16 @@ Path resolution order:
 Download cache:
 
 - default: `$SPINE_PROD_BASEDIR/.cache/weights` when using `spine-prod`
-- fallback: `$SPINE_BASEDIR/.cache/weights`
 - override: `$SPINE_CACHE_DIR`
+
+The `!download` cache handles model weights and other remote assets. This is separate from the SPINE software runtime, which production now gets from the configured container image.
 
 ## Production Checklist
 
 Before accepting a production HDF5 file for analysis, preserve:
 
 - `spine-prod` git commit
-- bundled SPINE submodule commit or SPINE package version
+- SPINE container version/tag and, where relevant, local `.sif` path
 - top-level config path and generated composite config, if modifiers/latest were used
 - command line, profile, and source list
 - model weight URL/hash or cached path
