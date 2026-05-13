@@ -39,13 +39,13 @@ Inference is intentionally not part of the timed exercise. The first notebook in
 | 0:30-1:05 | Notebook 1 | `notebooks/01_read_spine_output.ipynb` |
 | 1:05-1:25 | Spinal Tap teaser | Event display from the same HDF5 file |
 | 1:25-1:35 | Break / reset | Leave time for environment issues |
-| 1:35-2:10 | Notebook 2 | `notebooks/02_analysis_selection.ipynb` Michel mini-analysis |
-| 2:10-2:35 | Spinal Tap debugging | Open selected/failing events from Notebook 2 |
-| 2:35-2:55 | Production/config | `04_production_and_config.md` |
-| 2:55-3:10 | Truth validation teaser | `notebooks/03_truth_validation.ipynb`, first two plots only |
-| 3:10-3:15 | Checklist | Production files, versions, metadata, next steps |
+| 1:35-2:10 | Notebook 2 | `notebooks/02_event_selection.ipynb` matching and validation |
+| 2:10-2:45 | Notebook 3 | `notebooks/03_analysis_selection.ipynb` Michel mini-analysis |
+| 2:45-3:05 | Spinal Tap debugging | Open selected/failing events from Notebook 3 |
+| 3:05-3:25 | Production/config | `04_production_and_config.md` |
+| 3:25-3:30 | Checklist | Production files, versions, metadata, next steps |
 
-If the hands-on block is closer to 2 hours, treat Notebook 3 as an offline extension and keep only the production/config overview plus one validation plot.
+If the hands-on block is closer to 2 hours, keep Notebook 3 as a guided teaser and move most Spinal Tap debugging plus production/config details offline.
 
 ## Notebook Scope
 
@@ -55,11 +55,11 @@ If the hands-on block is closer to 2 hours, treat Notebook 3 as an offline exten
 1. `01_read_spine_output.ipynb`
    Opens a reconstructed HDF5 file with `spine.driver.Driver`, inspects `RecoParticle`, `TruthParticle`, `RecoInteraction`, and `TruthInteraction` objects, and builds small tables of object fields.
 
-2. `02_analysis_selection.ipynb`
-   Builds a detector-agnostic Michel-electron candidate table from reconstructed particles using semantic shape, interaction membership, closest-track attachment, and truth matching when available.
+2. `02_event_selection.ipynb`
+   Uses SPINE truth-matching products to study the ingredients of neutrino event selection by building PID and primary-ID confusion matrices plus a vertex-resolution diagnostic for a small number of entries.
 
-3. `03_truth_validation.ipynb`
-   Uses SPINE truth-matching products to build PID and primary-ID confusion matrices plus a vertex-resolution diagnostic for a small number of entries.
+3. `03_analysis_selection.ipynb`
+   Builds a detector-agnostic Michel-electron candidate table from reconstructed particles using semantic shape, interaction membership, closest-track attachment, and truth matching when available.
 
 4. `04_production_and_config.md`
    A terminal-oriented production tutorial: how `spine-prod` organizes detector configs, how to read `include` stacks and modifiers, how `spine.config` resolves `include`, `!include`, `!path`, `!download`, `override`, and removal operations, and how to dry-run or interactively test a production command.

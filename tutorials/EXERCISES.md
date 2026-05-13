@@ -11,7 +11,14 @@ Use this as the instructor-facing menu of things participants can solve during t
 - Build a one-row summary for one `RecoInteraction`: particle count, primary count, vertex, topology, and primary PIDs.
 - Open the same entry in Spinal Tap and connect one visual feature to one table field.
 
-### Notebook 2: Michel Mini-Analysis
+### Notebook 2: Matching and Validation
+
+- Build one PID confusion matrix and identify the dominant confusion mode.
+- Inspect one bad vertex candidate in Spinal Tap and decide whether the table diagnostic matches what you see visually.
+- Change `MATCH_THRESHOLD` and explain how the matched-pair counts change.
+- Pick one event-class confusion and identify whether PID, primary labeling, or clustering drove the mistake.
+
+### Notebook 3: Michel Mini-Analysis
 
 - Change `ATTACH_THRESHOLD_CM` from 3 cm to 1 cm or 5 cm and explain how the candidate count changes.
 - Raise `MICHEL_MIN_POINTS` and identify what kind of candidates disappear first.
@@ -24,11 +31,6 @@ Use this as the instructor-facing menu of things participants can solve during t
 - Find a `!download` weight and explain where it will be cached.
 - Read a `data` or `lite` modifier and list exactly what it removes.
 - Dry-run one `submit.py` command and find where the generated job metadata would live.
-
-### Notebook 3: Validation Teaser
-
-- Build one PID confusion matrix and identify the dominant confusion mode.
-- Compare a validation failure to the event display and decide whether the metric is diagnosing the same thing you see visually.
 
 ## Offline Extensions
 

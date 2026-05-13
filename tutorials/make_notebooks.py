@@ -41,59 +41,121 @@ def notebook(cells: list[dict]) -> dict:
 
 
 SETUP_IMPORTS = r'''
+# Standard Python/path tools for working with local files.
 from pathlib import Path
 
+# Analysis utilities used throughout the tutorials.
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yaml
 
+# The Driver is the main SPINE entry point for reading one event at a time.
 from spine.driver import Driver
 '''
 
-SETUP_SAMPLE = r'''
-# Tutorial data convention at FNAL/EAF:
-#   LARCV_DATA_DIR/DETECTOR/DETECTOR_TAG.root
-#   HDF5_DATA_DIR/DETECTOR/DETECTOR_TAG_spine.hdf5
-LARCV_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/larcv")
-HDF5_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/reco")
+SETUP_SAMPLE_TEMPLATE = '''
+# Prefer the shared DUNE path used in the workshop environment.
+# Fall back to the repository-local tutorial assets when needed.
+# We include both relative spellings because notebook kernels do not always
+# start in the notebook directory.
+DATA_ROOT_CANDIDATES = [
+    Path("/exp/dune/data/users/drielsma/npc-ddas"),
+    Path("../assets"),
+    Path("tutorials/assets"),
+]
 
-# Edit these two lines to switch samples.
-# Common detector examples: "icarus", "sbnd", "2x2", "nd-lar",
-# "protodune-sp", "protodune-vd"
-DETECTOR = "generic"
-TAG = "tutorial"
-GEOMETRY = None if DETECTOR == "generic" else DETECTOR
+# Pick the first location that actually exists on disk.
+DATA_ROOT = next((path for path in DATA_ROOT_CANDIDATES if path.exists()), None)
+if DATA_ROOT is None:
+    raise RuntimeError("Could not find a workshop data directory.")
 
-LARCV_PATH = LARCV_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}.root"
-DATA_PATH = HDF5_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}_spine.hdf5"
-print(DATA_PATH)
+# The reco HDF5 files live under reco/ inside the chosen data root.
+HDF5_DATA_DIR = DATA_ROOT / "reco"
+
+# Edit these values to switch samples.
+# The expected layout is:
+#   reco/DETECTOR/SAMPLE_NAME_spine.h5
+DETECTOR = "{detector}"
+SAMPLE_NAME = "{sample_name}"
+
+# GEOMETRY tells SPINE which detector geometry description to use.
+# For this workshop we use the detector name directly.
+GEOMETRY = {geometry_expr}
+HDF5_FILE_NAME = f"{{SAMPLE_NAME}}_spine.h5"
+
+# Build the final path to the reconstructed SPINE HDF5 file.
+DATA_PATH = HDF5_DATA_DIR / DETECTOR / HDF5_FILE_NAME
+
+print(f"Using data root: {{DATA_ROOT}}")
+print(f"Reco file: {{DATA_PATH}}")
 '''
 
 SETUP_DRIVER = r'''
+# As with the data paths, the notebook working directory can vary.
+# These two candidates point to the same tutorial config from different cwd values.
 CONFIG_CANDIDATES = [
     Path("../config/read_spine_hdf5.yaml"),
     Path("tutorials/config/read_spine_hdf5.yaml"),
 ]
 CONFIG_PATH = next((path for path in CONFIG_CANDIDATES if path.exists()), None)
 
+# Replace the DATA_PATH placeholder in the YAML template with the file we chose above.
 DATA_PATH = str(DATA_PATH)
 if CONFIG_PATH is None:
     raise RuntimeError("Could not find tutorials/config/read_spine_hdf5.yaml")
 
+# Read the YAML as text first so we can substitute the concrete file path.
 cfg_text = CONFIG_PATH.read_text().replace("DATA_PATH", DATA_PATH)
+
+# Convert the YAML text into a normal Python dictionary.
 cfg = yaml.safe_load(cfg_text)
+
+# Some detector samples need an explicit geometry block so downstream code knows
+# which detector layout and coordinate conventions to use.
 if GEOMETRY:
     cfg["geo"] = {"detector": GEOMETRY}
+
+# Create the SPINE driver. From this point on, driver.process(entry=...) reads events.
 driver = Driver(cfg)
 print(f"Opened {DATA_PATH}")
 print(f"Entries: {len(driver)}")
 if GEOMETRY:
     print(f"Detector geometry: {GEOMETRY}")
-print(f"Companion LArCV path: {LARCV_PATH}")
 '''
 
-COMMON_SETUP_CELLS = [code(SETUP_IMPORTS), code(SETUP_SAMPLE), code(SETUP_DRIVER)]
+def common_setup_cells(detector: str, sample_name: str, geometry_expr: str = "DETECTOR") -> list[dict]:
+    setup_sample = SETUP_SAMPLE_TEMPLATE.format(
+        detector=detector,
+        sample_name=sample_name,
+        geometry_expr=geometry_expr,
+    )
+    return [
+        md(
+            """## Step 1: import the tools for this notebook
+
+This first code cell does not touch any data yet. It only imports the Python modules we will use later.
+
+If an import fails, stop here. There is no point debugging later cells until this environment cell runs cleanly."""
+        ),
+        code(SETUP_IMPORTS),
+        md(
+            """## Step 2: choose the input file
+
+This second code cell answers one question: which SPINE HDF5 file should the rest of the notebook read?
+
+It looks for the shared workshop area first, then for the repository-local tutorial assets. It also defines the detector name and sample tag that control which file gets opened."""
+        ),
+        code(setup_sample),
+        md(
+            """## Step 3: build the SPINE driver from YAML
+
+Now that the notebook knows which file to read, it loads the tutorial YAML config, injects the concrete file path, and creates a `Driver` object.
+
+The geometry override in this step is important: it tells SPINE which detector geometry description to attach when the chosen sample needs one."""
+        ),
+        code(SETUP_DRIVER),
+    ]
 
 
 def write(name: str, cells: list[dict]) -> None:
@@ -107,61 +169,102 @@ write(
         md(
             """# 01 - Reading SPINE Output
 
-Goal: open a reconstructed SPINE HDF5 file, inspect the high-level object hierarchy, and connect particle/interactions fields to analysis questions.
+Goal: open a reconstructed SPINE HDF5 file, inspect the high-level object hierarchy, and connect particle and interaction fields to analysis questions.
 
-This notebook is the highest-priority hands-on material for the short session. It is adapted from the 2026 workshop HDF5 readback material, with inference moved out of scope."""
+This notebook is the workshop on-ramp. It moves step by step through the basic SPINE object model and the main event-level collections."""
+        ),
+        md(
+            """## Before you type anything
+
+Start with this mental model:
+
+- A SPINE output file is a collection of events.
+- Each event contains a mixture of reconstructed objects and/or truth objects.
+- The most common high-level objects are particles and interactions.
+- A particle is one logical reconstructed physics object:
+  - In the case of single track-like particles, it is all depositions associated with the same track.
+  - In the case of shower-like particles, it is a collection of shower fragments that originate from the same primary particle.
+- An interaction is a group of particles that belong together (originate from the same primary vertex).
+
+You do not need to memorize the full object model. The goal is to learn how to inspect it easily."""
         ),
         md(
             """## Runtime contract
 
-Run inside `ghcr.io/deeplearnphysics/spine:latest`.
+Run inside `ghcr.io/deeplearnphysics/spine:latest` (see `00_eaf_setup.md`).
 
 Set the sample in the first code cell:
 
 ```python
-DETECTOR = "generic"
-TAG = "tutorial"
-GEOMETRY = None if DETECTOR == "generic" else DETECTOR
+DETECTOR = "2x2"
+SAMPLE_NAME = "2x2_numi"
+GEOMETRY = DETECTOR
 ```
 
-By convention, the notebooks read:
+The notebooks look for data in this order:
+
+1. `/exp/dune/data/users/drielsma/npc-ddas`
+2. `tutorials/assets`
+
+Internally the code checks both `../assets` and `tutorials/assets` so the same repo-local fallback still works when the notebook kernel starts in a different working directory.
+
+In either case they read:
 
 ```python
-HDF5_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}_spine.hdf5"
+HDF5_DATA_DIR / DETECTOR / f"{SAMPLE_NAME}_spine.h5"
 ```
 
-and record the companion LArCV path:
+That keeps the workshop default aligned with the shared DUNE location while still allowing a repo-local fallback.
 
-```python
-LARCV_DATA_DIR / DETECTOR / f"{DETECTOR}_{TAG}.root"
-```
-
-The HDF5 file should contain reconstructed particles/interactions and, for validation cells, truth objects."""
+The HDF5 file should contain reconstructed particles and interactions and, for later validation, truth objects."""
         ),
-        *COMMON_SETUP_CELLS,
+        *common_setup_cells("2x2", "2x2_numi"),
+        md(
+            """## The config we are actually using
+
+The driver is not magic. It is created from a YAML config. For this notebook we inspect it once, here, and later notebooks will refer back to this pattern instead of repeating the full dump.
+
+Read this cell carefully. It tells you what the notebook is loading and which matching post-processors are enabled."""
+        ),
+        code(
+            """print(cfg_text)
+
+# If you prefer Python objects to raw YAML, inspect `cfg` as well.
+cfg"""
+        ),
         md(
             """## Where to look things up
 
-This tutorial deliberately pauses on small snippets. When a field or class is unfamiliar, use three complementary tools:
+When a field or class is unfamiliar, use three complementary tools:
 
 - Python introspection: `help(obj)`, `dir(obj)`, `obj.as_dict().keys()`
 - The SPINE API browser: https://spine.readthedocs.io
-- Source/config examples in `spine-prod`
+- Source and config examples in `spine-prod`
 
 The point is not to memorize every field. The point is to learn how to inspect the object model without guessing."""
         ),
         md(
-            """## Read One Entry
+            """## Read one entry
 
-Start with exactly one event entry. The first thing to learn is the structure of the returned dictionary."""
+Start with exactly one event entry. Before running the next cell, make a prediction:
+
+1. What do you think `driver.process(...)` returns?
+2. Do you expect a list, a dictionary, or one custom object?
+3. What keys do you think will be present?"""
         ),
         code(
             """ENTRY = 0
-data = driver.process(entry=ENTRY)
-list(data)"""
+
+# `driver.process` returns a dictionary of event-level data products.
+data = driver.process(entry=ENTRY)"""
+        ),
+        code(
+            """list(data)"""
         ),
         md(
-            """Now pull out the four high-level collections we will use. Pause here and check the counts before inspecting individual objects."""
+            """Now pull out the four high-level collections we will use most often. Pause here and check the counts before inspecting individual objects.
+
+If one collection is empty, that is not automatically a bug. It may just mean the file does not contain that category for this event."""
         ),
         code(
             """reco_particles = data.get("reco_particles", [])
@@ -188,26 +291,29 @@ truth_interactions = data.get("truth_interactions", [])"""
 )"""
         ),
         md(
-            """## Inspect one object
+            """## Inspect one object slowly
 
 SPINE objects expose Python attributes and usually an `as_dict()` method. Start by looking at one reconstructed particle and one reconstructed interaction.
 
-Pause on the line `d = obj.as_dict()`: it is the fastest way to discover the analysis-facing fields saved in this file."""
+This is the moment where beginners usually start guessing field names. Do not guess. Inspect."""
         ),
         code(
             """particle = reco_particles[0]
-interaction = reco_interactions[0]
-
-type(particle), type(interaction)"""
+interaction = reco_interactions[0]"""
         ),
         code(
-            """list(particle.as_dict())"""
+            """type(particle), type(interaction)"""
         ),
         code(
-            """# Try one of these during the tutorial.
+            """# `as_dict()` gives a fast survey of what the object knows about itself.
+list(particle.as_dict())"""
+        ),
+        code(
+            """# Try one or more of these during the tutorial.
 # help(particle)
 # dir(particle)
-# particle.as_dict().keys()"""
+# particle.as_dict().keys()
+# interaction.as_dict().keys()"""
         ),
         code(
             """def preview_value(value):
@@ -215,13 +321,15 @@ type(particle), type(interaction)"""
         return f"array shape={value.shape} dtype={value.dtype}"
     return repr(value)[:120]
 
+
 def compact_dict(obj, max_items=25):
     if hasattr(obj, "as_dict"):
-        d = obj.as_dict()
+        mapping = obj.as_dict()
     else:
-        d = vars(obj)
-    rows = [(key, preview_value(value)) for key, value in list(d.items())[:max_items]]
-    return pd.DataFrame(rows, columns=["field", "value"])
+        mapping = vars(obj)
+    rows = [(key, preview_value(value)) for key, value in list(mapping.items())[:max_items]]
+    return pd.DataFrame(rows, columns=["field", "preview"])
+
 
 compact_dict(particle)"""
         ),
@@ -229,24 +337,43 @@ compact_dict(particle)"""
             """compact_dict(interaction)"""
         ),
         md(
-            """## Use SPINE Labels
+            """## Micro-exercise: ask the object questions
+
+Use the previous output to answer these before moving on:
+
+1. Which field appears to store the particle ID?
+2. Which field appears to link a particle to an interaction?
+3. Which field looks like a particle type prediction?
+4. Which field looks energy-like or charge-like?
+
+If you are not sure, test your guess with one tiny line of code."""
+        ),
+        code(
+            """{
+    "particle_id": getattr(particle, "id", None),
+    "interaction_id": getattr(particle, "interaction_id", None),
+    "pid": getattr(particle, "pid", None),
+    "depositions_sum": getattr(particle, "depositions_sum", None),
+}"""
+        ),
+        md(
+            """## Use SPINE labels
 
 Do not hard-code PID or semantic-shape labels in analysis notebooks. Import the labels from SPINE so the notebook follows the installed package."""
         ),
         code(
-            """try:
-    from spine.constants import PID_LABELS, SHAPE_LABELS
-except ImportError:
-    from spine.utils.globals import PID_LABELS, SHAPE_LABELS"""
+            """from spine.constants import PID_LABELS, SHAPE_LABELS"""
         ),
         code(
             """display(pd.Series(SHAPE_LABELS, name="shape label").to_frame())
 display(pd.Series(PID_LABELS, name="PID label").to_frame())"""
         ),
         md(
-            """## Build a Particle Table
+            """## Build a first particle table
 
-Pick a short list of fields first. This is the analysis contract you are choosing to rely on."""
+Pick a short list of fields first. This is the analysis contract you are choosing to rely on.
+
+Notice how small this list is. In real analysis you almost never want every field at once."""
         ),
         code(
             """PARTICLE_FIELDS = [
@@ -257,10 +384,13 @@ Pick a short list of fields first. This is the analysis contract you are choosin
     "is_primary",
     "size",
     "depositions_sum",
-]"""
+]
+
+PARTICLE_FIELDS"""
         ),
         code(
-            """particle_df = pd.DataFrame(
+            """# Build one row per reconstructed particle.
+particle_df = pd.DataFrame(
     [{field: getattr(p, field, None) for field in PARTICLE_FIELDS} for p in reco_particles]
 )
 particle_df["pid_label"] = particle_df["pid"].map(PID_LABELS)
@@ -268,9 +398,27 @@ particle_df["shape_label"] = particle_df["shape"].map(SHAPE_LABELS)
 particle_df"""
         ),
         md(
-            """## Build an Interaction Table
+            """## Micro-exercise: answer real analysis questions
 
-Interactions group particles. The next table summarizes multiplicities and primary content without digging into every particle yet."""
+Try to answer each question with one or two lines of Python:
+
+1. What is the PID label of the first reconstructed particle?
+2. Which particles belong to the same interaction as that particle?
+3. Which of those particles are marked primary?
+4. Which column would you use as a first-pass energy or charge proxy?"""
+        ),
+        code(
+            """first_interaction_id = particle_df.loc[0, "interaction_id"]
+first_interaction_id"""
+        ),
+        code(
+            """same_interaction_particles = particle_df.query("interaction_id == @first_interaction_id")
+same_interaction_particles"""
+        ),
+        md(
+            """## Build an interaction table
+
+Interactions group particles. The next table summarizes multiplicities and primary content without forcing us to inspect every particle manually."""
         ),
         code(
             """def primary_particles(interaction):
@@ -295,13 +443,24 @@ Interactions group particles. The next table summarizes multiplicities and prima
 interaction_df"""
         ),
         md(
+            """## Cross-check particle to interaction bookkeeping
+
+The next cell answers a common beginner question: if a particle stores an `interaction_id`, can we recover the full interaction and compare the counts?"""
+        ),
+        code(
+            """chosen_interaction_id = int(first_interaction_id)
+
+interaction_df.query("id == @chosen_interaction_id")"""
+        ),
+        md(
             """## Live exercise
 
 Pick one interaction and answer:
 
 - Which primary particles does SPINE reconstruct?
 - Is the vertex close to the visually obvious interaction point?
-- Which fields would you trust for a first-pass analysis selection, and which require validation?"""
+- Which fields would you trust for a first-pass analysis selection, and which require validation?
+- If you wanted the total deposited charge for this interaction, would you sum particle-level values or read a field from the interaction object? Why?"""
         ),
         code(
             """from spine.vis.out import Drawer
@@ -319,28 +478,30 @@ This short tutorial starts from HDF5 output. For real production, `spine-prod` s
             """## Offline extensions
 
 - Repeat the field inspection for a second detector sample and list which object fields are detector-dependent.
-- Build a small field glossary for the 10 particle/interactions attributes your analysis will use.
-- Compare the same event in this notebook and Spinal Tap, then record which table fields explain the visual topology."""
+- Build a small field glossary for the 10 particle and interaction attributes your analysis will use.
+- Compare the same event in this notebook and Spinal Tap, then record which table fields explain the visual topology.
+- Write one extra cell that computes the total `depositions_sum` for every interaction by grouping particles."""
         ),
     ],
 )
 
 
 write(
-    "02_analysis_selection.ipynb",
+    "03_analysis_selection.ipynb",
     [
         md(
-            """# 02 - Michel Electron Mini-Analysis
+            """# 03 - Michel Electron Mini-Analysis
 
 Goal: build a detector-agnostic Michel electron candidate table from reconstructed SPINE particles, estimate simple selection metrics when truth is available, and send interesting entries to Spinal Tap.
 
-Michel electrons are useful here because the exercise is high-level and physics-facing, but still forces us to reason about SPINE object fields: particle shape, interaction membership, particle size, deposited charge, endpoints, matching, and topology."""
-        ),
-        *COMMON_SETUP_CELLS,
-        md(
-            """## Analysis idea
+Notebook 1 introduced the YAML config and the object-inspection workflow. Notebook 2 introduced truth matching and validation diagnostics. Here we turn those ingredients into a concrete analysis table.
 
-A Michel electron is an electron from a stopped muon decay. In reconstructed SPINE objects we will look for:
+This notebook builds an analysis table step by step, starting from small object-level questions and ending with a compact selection."""
+        ),
+        md(
+            """## Physics story in one paragraph
+
+A Michel electron is an electron from a stopped muon decay. In reconstructed SPINE objects, the key ingredients are:
 
 1. a particle with Michel semantic shape;
 2. a track-like particle in the same interaction;
@@ -349,23 +510,65 @@ A Michel electron is an electron from a stopped muon decay. In reconstructed SPI
 
 This is not a final detector-specific Michel selection. It is a compact analysis skeleton that works across detectors as long as the HDF5 file contains reconstructed particles."""
         ),
+        *common_setup_cells("2x2", "2x2_numi"),
+        md(
+            """## Reuse the setup from Notebook 1
+
+    This notebook uses the same readback config as Notebook 1. The full YAML appears there.
+
+The new work in this notebook is the analysis logic, not the file-loading logic."""
+        ),
         code(
             """N_ENTRIES = min(len(driver), 50)
 print(f"Scanning {N_ENTRIES} entries")"""
         ),
         code(
-            """try:
-    from spine.constants import MICHL_SHP, TRACK_SHP, SHAPE_LABELS
-except ImportError:
-    from spine.utils.globals import MICHL_SHP, TRACK_SHP, SHAPE_LABELS
+            """from spine.constants import MICHL_SHP, TRACK_SHP, SHAPE_LABELS
 
 print(f"Michel shape id: {MICHL_SHP} -> {SHAPE_LABELS[MICHL_SHP]}")
 print(f"Track shape id:  {TRACK_SHP} -> {SHAPE_LABELS[TRACK_SHP]}")"""
         ),
         md(
+            """## Start with one event, not fifty
+
+Before writing a batch loop, inspect one event and ask simpler questions:
+
+1. Does this event contain any Michel-shaped particles?
+2. If yes, which interaction do they belong to?
+3. Is there a track-like particle in that same interaction?"""
+        ),
+        code(
+            """EXAMPLE_ENTRY = 0
+example = driver.process(entry=EXAMPLE_ENTRY)
+example_particles = example.get("reco_particles", [])"""
+        ),
+        code(
+            """example_particle_df = pd.DataFrame(
+    [
+        {
+            "id": getattr(p, "id", -1),
+            "interaction_id": getattr(p, "interaction_id", -1),
+            "shape": getattr(p, "shape", -1),
+            "shape_label": SHAPE_LABELS.get(getattr(p, "shape", -1), "unknown"),
+            "size": getattr(p, "size", np.nan),
+            "depositions_sum": getattr(p, "depositions_sum", np.nan),
+        }
+        for p in example_particles
+    ]
+)
+
+example_particle_df.head(20)"""
+        ),
+        code(
+            """example_michels = example_particle_df.query("shape == @MICHL_SHP")
+example_michels"""
+        ),
+        md(
             """## Pause on the distance function
 
-The line `diff = a[:, None, :] - b[None, :, :]` builds all pairwise point differences between two particles. That gives us the closest approach between a Michel candidate and a track without relying on detector-specific geometry."""
+The line `diff = a[:, None, :] - b[None, :, :]` builds all pairwise point differences between two particles. That gives us the closest approach between a Michel candidate and a track without relying on detector-specific geometry.
+
+If that NumPy expression feels unfamiliar, that is fine. Treat it as a utility function and focus on what goes in and what comes out."""
         ),
         code(
             """def points(p):
@@ -373,6 +576,7 @@ The line `diff = a[:, None, :] - b[None, :, :]` builds all pairwise point differ
     if pts is None:
         return np.empty((0, 3))
     return np.asarray(pts)
+
 
 def min_point_distance(p1, p2):
     a = points(p1)
@@ -382,12 +586,18 @@ def min_point_distance(p1, p2):
     diff = a[:, None, :] - b[None, :, :]
     return float(np.sqrt(np.sum(diff * diff, axis=-1)).min())
 
+
 def deposition_sum(p):
     value = getattr(p, "depositions_sum", None)
     if value is not None:
         return float(value)
     depositions = getattr(p, "depositions", None)
     return float(np.sum(depositions)) if depositions is not None else np.nan"""
+        ),
+        md(
+            """## Choose simple thresholds
+
+These numbers are analysis choices, not universal truths. The point of the notebook is to make those choices visible and easy to change."""
         ),
         code(
             """MUON_MIN_POINTS = 20
@@ -415,6 +625,7 @@ print({
     distances = [(track, min_point_distance(candidate, track)) for track in same_interaction_tracks]
     return min(distances, key=lambda item: item[1])
 
+
 def best_truth_match(p):
     ids = list(getattr(p, "match_ids", []))
     overlaps = list(getattr(p, "match_overlaps", []))
@@ -422,6 +633,7 @@ def best_truth_match(p):
         return -1, 0.0
     index = int(np.argmax(overlaps))
     return ids[index], float(overlaps[index])
+
 
 def michel_candidate_row(entry, p, particles):
     parent_track, attach_dist = best_attached_track(p, particles)
@@ -445,7 +657,9 @@ def michel_candidate_row(entry, p, particles):
         md(
             """## Build the candidate table
 
-Pause on `p.shape == MICHL_SHP`: this is where the high-level analysis becomes a SPINE-object query. Everything after that is ordinary table building."""
+Pause on `p.shape == MICHL_SHP`: this is where the high-level analysis becomes a SPINE-object query. Everything after that is ordinary table building.
+
+Read the loop with this question in mind: which lines are SPINE-specific, and which lines are just normal Python and pandas?"""
         ),
         code(
             """rows = []
@@ -456,10 +670,12 @@ for entry in range(N_ENTRIES):
     reco_particles = data.get("reco_particles", [])
     truth_particles = data.get("truth_particles", [])
 
+    # First collect reconstructed Michel candidates.
     for p in reco_particles:
         if getattr(p, "shape", -1) == MICHL_SHP:
             rows.append(michel_candidate_row(entry, p, reco_particles))
 
+    # Then collect truth Michels so we can estimate rough efficiency.
     for tp in truth_particles:
         if getattr(tp, "shape", -1) == MICHL_SHP:
             match_id, match_overlap = best_truth_match(tp)
@@ -474,9 +690,10 @@ for entry in range(N_ENTRIES):
                 "match_overlap": match_overlap,
                 "is_reco_matched": match_overlap >= MATCH_THRESHOLD,
                 "ke": getattr(tp, "ke", np.nan),
-            })
-
-candidate_columns = [
+            })"""
+        ),
+        code(
+            """candidate_columns = [
     "entry",
     "particle_id",
     "interaction_id",
@@ -508,6 +725,16 @@ truth_michels = pd.DataFrame(true_rows, columns=truth_columns)
 
 display(candidates.head())
 display(truth_michels.head())"""
+        ),
+        md(
+            """## Micro-exercise: interrogate one candidate row
+
+Pick one row from `candidates` and answer:
+
+1. What interaction does it belong to?
+2. What track did we attach it to?
+3. Is the attachment distance small or large?
+4. If truth is available, does the best overlap look convincing?"""
         ),
         code(
             """if len(candidates):
@@ -560,6 +787,63 @@ pd.DataFrame([{
 }])"""
         ),
         md(
+            """## SPINE-native CSV export
+
+The derived Michel table above is useful for teaching and for quick iteration. But when you want to dump raw SPINE object information to CSV, use SPINE's save analysis script instead of hand-writing lots of export code.
+
+This is a good division of labor:
+
+- use normal notebook code for derived quantities such as `attach_dist_cm` or custom selections;
+- use the save script for standard object attributes that already exist on particles and interactions."""
+        ),
+        code(
+            """# This config is a compact example of what you could put in a standalone YAML file.
+save_cfg = {
+    "save": {
+        "obj_type": ["particle", "interaction"],
+        "run_mode": "both",
+        "match_mode": "both",
+        "overwrite": True,
+        "particle": [
+            "id",
+            "interaction_id",
+            "pid",
+            "shape",
+            "size",
+            "depositions_sum",
+            "is_primary",
+        ],
+        "interaction": [
+            "id",
+            "nu_id",
+            "size",
+            "topology",
+            "vertex",
+        ],
+    }
+}
+
+print(yaml.safe_dump({"ana": save_cfg}, sort_keys=False))"""
+        ),
+        code(
+            """from spine.ana.manager import AnaManager
+
+SAVE_OUTPUT_DIR = Path("save_demo_output")
+SAVE_OUTPUT_DIR.mkdir(exist_ok=True)
+
+save_manager = AnaManager(save_cfg, log_dir=str(SAVE_OUTPUT_DIR))
+# Run the save script on a small sample first so the output stays easy to inspect.
+for entry in range(min(10, len(driver))):
+    save_manager(driver.process(entry=entry))
+save_manager.close()
+
+sorted(path.name for path in SAVE_OUTPUT_DIR.glob("save_*.csv"))"""
+        ),
+        code(
+            """saved_particles = pd.read_csv(SAVE_OUTPUT_DIR / "save_reco_particles.csv")
+saved_particles.head()"""
+        ),
+        md(
             """## Spinal Tap handoff
 
 The useful debugging output is a small list of selected candidates and suspicious failures:
@@ -567,7 +851,9 @@ The useful debugging output is a small list of selected candidates and suspiciou
 - selected Michel candidates with large attachment distance;
 - selected candidates with no truth match;
 - true Michels with no reco match;
-- high-charge candidates that fail the attachment cut."""
+- high-charge candidates that fail the attachment cut.
+
+This CSV is still custom because it stores derived quantities from our notebook selection logic, not just raw SPINE object attributes."""
         ),
         code(
             """event_list = candidates.sort_values(
@@ -596,7 +882,8 @@ Choose one:
 1. Change `ATTACH_THRESHOLD_CM` from 3 cm to 1 cm or 5 cm. What happens to the candidate count?
 2. Raise `MICHEL_MIN_POINTS`. Which candidates disappear first?
 3. Open one unmatched selected candidate in Spinal Tap. Is it a real Michel, a delta ray, a fragment, or a shower piece?
-4. Open one true unmatched Michel in Spinal Tap. Was it missed by segmentation, clustering, or matching?"""
+4. Open one true unmatched Michel in Spinal Tap. Was it missed by segmentation, clustering, or matching?
+5. Compare one row from `saved_particles` with one row from `candidates`. Which columns came directly from SPINE, and which ones did we derive ourselves?"""
         ),
         md(
             """## Offline extensions
@@ -612,16 +899,30 @@ Choose one:
 
 
 write(
-    "03_truth_validation.ipynb",
+    "02_event_selection.ipynb",
     [
         md(
-            """# 03 - Truth Validation
+            """# 02 - Matching, Validation, and Event Selection
 
-Goal: validate the analysis-facing objects with matching, confusion matrices, and a simple vertex-resolution diagnostic.
+Goal: study the ingredients that drive neutrino event selection by checking PID, primary labeling, vertex quality, and matching-based diagnostics on a realistic sample.
 
-This is the compressed version of the PID and primary/vertex validation notebooks from the full workshop."""
+Notebook 1 covered SPINE object inspection. This notebook introduces truth matching and validation before we turn the objects into a specific analysis in Notebook 3."""
         ),
-        *COMMON_SETUP_CELLS,
+        md(
+            """## What you should already know
+
+This notebook reuses the same file-loading setup as Notebook 1, without repeating the full YAML.
+
+It defaults to the `nd-lar_lbnf` sample rather than `2x2_numi` because this detector/sample pair is a better place to discuss neutrino event-selection ingredients such as PID, primaries, and vertex quality.
+
+The new concepts here are:
+
+- truth-to-reco matching;
+- overlap thresholds;
+- confusion matrices;
+- simple validation plots that tell you where to look next."""
+        ),
+        *common_setup_cells("nd-lar", "nd-lar_lbnf"),
         code(
             """from sklearn.metrics import confusion_matrix
 
@@ -629,10 +930,70 @@ N_ENTRIES = min(len(driver), 100)
 MATCH_THRESHOLD = 0.1
 print(f"Validating {N_ENTRIES} entries with overlap threshold {MATCH_THRESHOLD}")"""
         ),
+        md(
+            """## Sanity-check one event first
+
+Before aggregating many events, inspect one event and ask:
+
+1. Are there matched particle pairs at all?
+2. Are there matched interaction pairs at all?
+3. What does the overlap value look like for this event?"""
+        ),
+        code(
+            """ENTRY = 0
+example = driver.process(entry=ENTRY)
+
+particle_pairs = example.get("particle_matches_t2r", [])
+particle_overlaps = example.get("particle_matches_t2r_overlap", np.ones(len(particle_pairs)))
+interaction_pairs = example.get("interaction_matches_t2r", [])
+interaction_overlaps = example.get("interaction_matches_t2r_overlap", np.ones(len(interaction_pairs)))"""
+        ),
+        code(
+            """pd.DataFrame(
+    {
+        "collection": ["particle_matches_t2r", "interaction_matches_t2r"],
+        "count": [len(particle_pairs), len(interaction_pairs)],
+        "max_overlap": [
+            float(np.max(particle_overlaps)) if len(particle_overlaps) else np.nan,
+            float(np.max(interaction_overlaps)) if len(interaction_overlaps) else np.nan,
+        ],
+    }
+)"""
+        ),
+        md(
+            """## Build validation tables
+
+The next cell converts matched objects into four ordinary tables:
+
+- one row per matched particle pair;
+- one row per matched primary-label comparison;
+- one row per matched interaction pair for event-class validation;
+- one row per matched interaction pair for vertex validation.
+
+Once the tables exist, the rest of the notebook is mostly pandas and plotting."""
+        ),
         code(
             """particle_rows = []
 primary_rows = []
+interaction_rows = []
 vertex_rows = []
+
+
+def interaction_class(interaction):
+    # In this tutorial we collapse neutrino interactions into three categories:
+    #   CC numu: at least one primary muon
+    #   CC nue:  at least one primary electron
+    #   NC nu:   no primary lepton
+    primary_pids = {
+        getattr(p, "pid", -1)
+        for p in getattr(interaction, "particles", [])
+        if getattr(p, "is_primary", False)
+    }
+    if 2 in primary_pids:
+        return "CC numu"
+    if 1 in primary_pids:
+        return "CC nue"
+    return "NC nu"
 
 for entry in range(N_ENTRIES):
     data = driver.process(entry=entry)
@@ -670,6 +1031,15 @@ for entry in range(N_ENTRIES):
         overlap = ia_overlaps[i]
         if overlap < MATCH_THRESHOLD:
             continue
+        interaction_rows.append({
+            "entry": entry,
+            "truth_interaction_id": getattr(truth_ia, "id", -1),
+            "reco_interaction_id": getattr(reco_ia, "id", -1),
+            "overlap": overlap,
+            "true_nu_id": getattr(truth_ia, "nu_id", -1),
+            "true_class": interaction_class(truth_ia),
+            "reco_class": interaction_class(reco_ia),
+        })
         if not hasattr(truth_ia, "vertex") or not hasattr(reco_ia, "vertex"):
             continue
         vertex_rows.append({
@@ -683,17 +1053,36 @@ for entry in range(N_ENTRIES):
 
 particles = pd.DataFrame(particle_rows)
 primaries = pd.DataFrame(primary_rows)
+interactions = pd.DataFrame(interaction_rows)
 vertices = pd.DataFrame(vertex_rows)
 
 display(particles.head())
+display(interactions.head())
 display(vertices.head())"""
         ),
+        md(
+            """## Ask simple questions before plotting
+
+Before reading the confusion matrix, check that you understand the table columns:
+
+1. Which columns come from truth?
+2. Which columns come from reconstruction?
+3. Which columns are bookkeeping or metadata?
+4. Which filters below are removing unmatched or non-neutrino entries?"""
+        ),
         code(
-            """PID_LABELS = ["photon", "electron", "muon", "pion", "proton"]
+            """from spine.constants import PID_LABELS
+
+PID_LABELS = [PID_LABELS[i] for i in range(5)]
 valid_pid = particles.query("0 <= true_pid <= 4 and 0 <= reco_pid <= 4")
 
 cm_counts = confusion_matrix(valid_pid["true_pid"], valid_pid["reco_pid"], labels=[0, 1, 2, 3, 4])
-cm_norm = confusion_matrix(valid_pid["true_pid"], valid_pid["reco_pid"], labels=[0, 1, 2, 3, 4], normalize="true")
+cm_norm = confusion_matrix(
+    valid_pid["true_pid"],
+    valid_pid["reco_pid"],
+    labels=[0, 1, 2, 3, 4],
+    normalize="true",
+)
 
 fig, ax = plt.subplots(figsize=(6, 5))
 im = ax.imshow(cm_norm, vmin=0, vmax=1, cmap="Blues")
@@ -706,6 +1095,11 @@ for i in range(5):
     for j in range(5):
         ax.text(j, i, f"{cm_norm[i, j]:.2f}\\n({cm_counts[i, j]})", ha="center", va="center", fontsize=8)
 plt.tight_layout()"""
+        ),
+        md(
+            """## Primary-particle validation
+
+Here we restrict to neutrino-associated truth particles as a very simple slice of the dataset. That is what the `true_nu_id > -1` cut is doing."""
         ),
         code(
             """mpv_primary = primaries[primaries["true_nu_id"] > -1]
@@ -724,6 +1118,11 @@ for i in range(2):
         ax.text(j, i, f"{primary_norm[i, j]:.2f}\\n({primary_counts[i, j]})", ha="center", va="center")
 plt.tight_layout()"""
         ),
+        md(
+            """## Vertex-resolution diagnostic
+
+This is intentionally simple: for matched truth and reco interactions, compute the distance between the two vertices and look at the tail."""
+        ),
         code(
             """mpv_vertices = vertices[vertices["true_nu_id"] > -1]
 fig, ax = plt.subplots(figsize=(6, 3))
@@ -736,15 +1135,65 @@ bad_vertices = mpv_vertices.sort_values("vertex_distance_cm", ascending=False).h
 bad_vertices"""
         ),
         md(
+            """## Neutrino event-class confusion matrix
+
+For event selection, a very common first question is whether SPINE gets the broad interaction class right.
+
+Here we collapse matched neutrino interactions into three bins:
+
+- `CC numu`: one or more primary muons;
+- `CC nue`: one or more primary electrons;
+- `NC nu`: no primary lepton.
+
+This is a compact diagnostic to follow up in the event display once you have already looked at the vertex behavior."""
+        ),
+        code(
+            """EVENT_CLASS_LABELS = ["CC numu", "CC nue", "NC nu"]
+
+nu_interactions = interactions[interactions["true_nu_id"] > -1]
+event_counts = confusion_matrix(
+    nu_interactions["true_class"],
+    nu_interactions["reco_class"],
+    labels=EVENT_CLASS_LABELS,
+)
+event_norm = confusion_matrix(
+    nu_interactions["true_class"],
+    nu_interactions["reco_class"],
+    labels=EVENT_CLASS_LABELS,
+    normalize="true",
+)
+
+fig, ax = plt.subplots(figsize=(5, 4))
+im = ax.imshow(event_norm, vmin=0, vmax=1, cmap="Purples")
+plt.colorbar(im, ax=ax, label="row-normalized fraction")
+ax.set_xticks(range(3), EVENT_CLASS_LABELS, rotation=30, ha="right")
+ax.set_yticks(range(3), EVENT_CLASS_LABELS)
+ax.set_xlabel("reco event class")
+ax.set_ylabel("truth event class")
+for i in range(3):
+    for j in range(3):
+        ax.text(j, i, f"{event_norm[i, j]:.2f}\\n({event_counts[i, j]})", ha="center", va="center", fontsize=9)
+plt.tight_layout()"""
+        ),
+        md(
             """## Live exercise
 
-Pick one bad vertex or one PID confusion mode and send that `(entry, interaction_id)` back to Spinal Tap. Decide whether the problem is segmentation, fragmentation, interaction clustering, PID, primary ID, or vertexing."""
+Pick one bad vertex or one PID confusion mode and send that event back to Spinal Tap. Then decide what kind of failure you are looking at:
+
+- segmentation;
+- fragmentation;
+- interaction clustering;
+- PID;
+- primary labeling;
+- vertexing.
+
+The important shift here is from counting mistakes to diagnosing mistakes."""
         ),
         md(
             """## Offline extensions
 
 - Split PID confusion by particle length, deposited charge, containment, or detector module boundary.
-- Build efficiency and purity curves for the selection in Notebook 2.
+- Build efficiency and purity curves for the selection in Notebook 3.
 - Compare validation metrics before and after changing a production modifier or post-processing threshold.
 - Turn one recurring failure mode into a short debugging note with event IDs and screenshots."""
         ),
@@ -758,3 +1207,12 @@ Pick one bad vertex or one PID confusion mode and send that `(entry, interaction
         ),
     ],
 )
+
+for legacy_name in (
+    "02_analysis_selection.ipynb",
+    "03_event_selection.ipynb",
+    "03_truth_validation.ipynb",
+):
+    legacy_notebook = NB_DIR / legacy_name
+    if legacy_notebook.exists():
+        legacy_notebook.unlink()
