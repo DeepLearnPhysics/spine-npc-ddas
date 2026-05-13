@@ -7,7 +7,7 @@ This is a terminal-oriented tutorial. Keep the live path to about 5 minutes: one
 Required input at EAF:
 
 ```text
-/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root
+/exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root
 ```
 
 The output should be a reconstructed SPINE HDF5 file. Notebook 2 can read that output, with the option to switch to pre-produced files under:
@@ -47,7 +47,7 @@ First do a dry run. This checks the config, source file, runtime profile, and ge
 ```bash
 /exp/dune/app/users/drielsma/spine-prod/submit.py \
   --config infer/generic/latest \
-  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root \
+  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root \
   --dry-run
 ```
 
@@ -64,7 +64,7 @@ If the dry run looks correct and the instructor wants to run inference live, run
 /exp/dune/app/users/drielsma/spine-prod/submit.py -I \
   --interactive-runtime container \
   --config infer/generic/latest \
-  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root \
+  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root \
   --set base.world_size=0
 ```
 

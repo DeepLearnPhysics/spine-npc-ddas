@@ -91,7 +91,7 @@ If that imports successfully, the tutorial notebooks can use the same kernel.
 The notebooks expect the shared tutorial data layout:
 
 ```text
-/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root
+/exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root
 /exp/dune/data/users/drielsma/npc-ddas/reco/DETECTOR/SAMPLE_NAME_spine.h5
 ```
 

@@ -196,7 +196,7 @@ Run inside `ghcr.io/deeplearnphysics/spine:latest` (see `00_eaf_setup.md`).
 The previous tutorial showed how one file is produced from:
 
 ```python
-LARCV_FILE = "/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root"
+LARCV_FILE = "/exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root"
 ```
 
 If that production output is available, point this notebook at it. Otherwise use one of the pre-produced detector samples under `/exp/dune/data/users/drielsma/npc-ddas/reco`.
