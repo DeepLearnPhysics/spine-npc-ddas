@@ -14,8 +14,8 @@ Use this as the instructor-facing menu of things participants can solve during t
 
 ### 01: One-File Production
 
-- Dry-run the `generic_test.root` production command and identify the config, source file, container tag, and metadata directory.
-- If the instructor runs inference live, record the output HDF5 path that Notebook 2 should open.
+- Run the `generic_test.root` production command interactively and identify the config, source file, container image, and local `jobs/` directory.
+- Find the output HDF5 path that Notebook 2 should open.
 - Explain why full production campaigns are not being run inside the tutorial timing.
 
 ### Notebook 2: Reading SPINE Output

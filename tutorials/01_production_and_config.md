@@ -2,7 +2,7 @@
 
 Goal: run one small `spine-prod` example on one LArCV file, then understand just enough provenance to know what file the next notebook is reading.
 
-This is a terminal-oriented tutorial. Keep the live path to about 5 minutes: one dry run, plus an interactive command only if the instructor confirms the runtime is already ready.
+This is a terminal-oriented tutorial. Keep the live path to about 5 minutes: set up the EAF runtime, run one file interactively, and point to the `jobs/` directory that `spine-prod` creates.
 
 Required input at EAF:
 
@@ -42,23 +42,7 @@ export SPINE_CONTAINER_PATH=/exp/dune/app/users/drielsma/spine/container/spine_l
 source /exp/dune/app/users/drielsma/spine-prod/configure.sh
 ```
 
-First do a dry run. This checks the config, source file, runtime profile, and generated job metadata without spending time on inference:
-
-```bash
-/exp/dune/app/users/drielsma/spine-prod/submit.py \
-  --config infer/generic/latest \
-  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root \
-  --dry-run
-```
-
-Live questions:
-
-- Which top-level config is being requested?
-- Which input file is being reconstructed?
-- Which SPINE container tag or image path would be used?
-- Where would the job metadata and resolved config be written?
-
-If the dry run looks correct and the instructor wants to run inference live, run the same file interactively through the configured container:
+Run the single-file production test interactively through the configured container:
 
 ```bash
 /exp/dune/app/users/drielsma/spine-prod/submit.py -I \
@@ -68,21 +52,27 @@ If the dry run looks correct and the instructor wants to run inference live, run
   --set base.world_size=0
 ```
 
-The live session should stop here. The rest of this page is reference material for people who want to understand production more deeply.
+Live questions:
 
-## What To Record
+- Which top-level config is being requested?
+- Which input file is being reconstructed?
+- Which SPINE container tag or image path would be used?
+- Where did `spine-prod` create the local `jobs/` directory?
 
-For the file you just made, record:
+The live session should stop here. More information about dry runs, batch jobs, source lists, and configuration composition is below.
 
-- `spine-prod` git commit
-- SPINE container version/tag and, where relevant, local `.sif` path
-- top-level config request, for example `infer/generic/latest`
-- exact command line
-- input LArCV file
-- output HDF5 file
-- generated/resolved config path, if `submit.py` wrote one
+## Production Provenance
 
-That is the minimal provenance needed before opening the HDF5 file in Notebook 2.
+The point of `spine-prod` is that the production context is explicit and reproducible. You should not need to keep a separate handwritten notebook of every detail during the tutorial. Instead, know where to recover the important ingredients:
+
+- the `spine-prod` checkout/version that supplied `submit.py`
+- the SPINE container image or `.sif` path selected by the setup script
+- the top-level config request, for example `infer/generic/latest`
+- the input source file or source list
+- the generated job directory and resolved config/output metadata
+- the output HDF5 file that downstream notebooks read
+
+For a real analysis note, cite those production artifacts rather than relying on memory.
 
 ## Optional: Production Runtime Model
 
@@ -134,7 +124,7 @@ cd ~
 source /exp/dune/app/users/drielsma/spine-prod/configure_eaf.sh
 ```
 
-Then run the dry run first, followed by the interactive command only if the dry run resolves the expected config and source file.
+Then run the same interactive command from the required section.
 
 ## Optional: Run at NERSC
 
@@ -158,6 +148,8 @@ For real campaigns, prefer source lists over ad hoc single-file commands:
   --profile s3df_ampere \
   --dry-run
 ```
+
+Dry runs remain useful for checking a batch request before submission. They are skipped in the live tutorial only to save time.
 
 ## Optional: Compose Configurations
 
