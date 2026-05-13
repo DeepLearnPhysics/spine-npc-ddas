@@ -46,9 +46,9 @@ Run the single-file production test interactively through the configured contain
 
 ```bash
 /exp/dune/app/users/drielsma/spine-prod/submit.py -I \
-  --interactive-runtime container \
   --config infer/generic/latest \
   --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root \
+  --bind-paths /exp/dune/data \
   --set base.world_size=0
 ```
 
