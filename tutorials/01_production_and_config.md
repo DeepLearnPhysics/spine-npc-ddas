@@ -10,7 +10,7 @@ Required input at EAF:
 /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root
 ```
 
-The output should be a reconstructed SPINE HDF5 file. Notebook 2 reads that output, with the option to switch to pre-produced files under:
+The output should be a reconstructed SPINE HDF5 file. Notebook 2 can read that output, with the option to switch to pre-produced files under:
 
 ```text
 /exp/dune/data/users/drielsma/npc-ddas/reco
@@ -25,18 +25,21 @@ Useful references while working:
 
 ## Required: Run One File
 
-Start in a `spine-prod` checkout:
+Use the pre-installed `spine-prod` checkout on EAF. Do not clone the repository or download weights during the live session.
 
 ```bash
-cd spine-prod
-source configure.sh
+cd /exp/dune/app/users/drielsma/spine-prod
+source configure_eaf.sh
 ```
 
-On EAF, make the Apptainer runtime explicit:
+For reference, `configure_eaf.sh` does the EAF-specific runtime setup before sourcing the normal `spine-prod` configuration:
 
 ```bash
-export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/eaf.opensciencegrid.org/apptainer/bin/apptainer
+export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/oasis.opensciencegrid.org/mis/apptainer/current/bin/apptainer
 export SPINE_CONTAINER_RUNTIME_ARGS="--env LD_PRELOAD= --env LC_ALL=C.UTF-8"
+export SPINE_CONTAINER_PATH=/exp/dune/app/users/drielsma/spine/container/spine_latest.sif
+
+source /exp/dune/app/users/drielsma/spine-prod/configure.sh
 ```
 
 First do a dry run. This checks the config, source file, runtime profile, and generated job metadata without spending time on inference:
@@ -127,10 +130,8 @@ Useful runtime variables:
 If you need an interactive EAF GPU slot before running the command, use the current EAF GPU request procedure from the site documentation. Once the shell is on a GPU node, repeat the required setup:
 
 ```bash
-cd spine-prod
-source configure.sh
-export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/eaf.opensciencegrid.org/apptainer/bin/apptainer
-export SPINE_CONTAINER_RUNTIME_ARGS="--env LD_PRELOAD= --env LC_ALL=C.UTF-8"
+cd /exp/dune/app/users/drielsma/spine-prod
+source configure_eaf.sh
 ```
 
 Then run the dry run first, followed by the interactive command only if the dry run resolves the expected config and source file.

@@ -54,7 +54,7 @@ This keeps the lecture inside the first 90 minute block and leaves 2 hours and 1
    Pre-session EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, and optional Spinal Tap setup.
 
 1. [`01_production_and_config.md`](tutorials/01_production_and_config.md)
-   Run one `spine-prod` example on `/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root`. EAF GPU requests, NERSC execution, and `spine.config` composition are optional reference sections.
+   Run one `spine-prod` example from the pre-installed EAF checkout at `/exp/dune/app/users/drielsma/spine-prod` on `/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root`. EAF GPU requests, NERSC execution, and `spine.config` composition are optional reference sections.
 
 2. [`02_read_spine_output.ipynb`](tutorials/notebooks/02_read_spine_output.ipynb)
    Opens a reconstructed HDF5 file with `spine.driver.Driver`, inspects `RecoParticle`, `TruthParticle`, `RecoInteraction`, and `TruthInteraction` objects, and builds small tables of object fields.
