@@ -41,6 +41,7 @@ Use this as the instructor-facing menu of things participants can solve during t
 
 ### Optional Production and Config
 
+- Dry-run one batch-style `submit.py` command and inspect the generated submission script.
 - Trace one top-level config through its `include` files and identify which component owns IO, weights, and post-processing.
 - Find a `!download` weight and explain where it will be cached.
 - Read a `data` or `lite` modifier and list exactly what it removes.
