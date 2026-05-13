@@ -952,7 +952,25 @@ The new concepts here are:
         ),
         *common_setup_cells("nd-lar", "nd-lar_lbnf"),
         code(
-            """from sklearn.metrics import confusion_matrix
+            """def confusion_matrix(y_true, y_pred, labels, normalize=None):
+    matrix = np.zeros((len(labels), len(labels)), dtype=int)
+    label_to_index = {label: index for index, label in enumerate(labels)}
+
+    for true_label, pred_label in zip(y_true, y_pred):
+        if true_label in label_to_index and pred_label in label_to_index:
+            matrix[label_to_index[true_label], label_to_index[pred_label]] += 1
+
+    if normalize == "true":
+        row_sums = matrix.sum(axis=1, keepdims=True)
+        return np.divide(
+            matrix,
+            row_sums,
+            out=np.zeros_like(matrix, dtype=float),
+            where=row_sums != 0,
+        )
+
+    return matrix
+
 
 N_ENTRIES = min(len(driver), 100)
 MATCH_THRESHOLD = 0.1
