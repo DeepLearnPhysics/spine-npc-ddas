@@ -25,11 +25,11 @@ Useful references while working:
 
 ## Required: Run One File
 
-Use the pre-installed `spine-prod` checkout on EAF. Do not clone the repository or download weights during the live session.
+Use the pre-installed `spine-prod` checkout on EAF, but do not `cd` into it. Stay in a directory you can write to, such as your home directory. `submit.py` will create a `jobs/` directory in the current working directory.
 
 ```bash
-cd /exp/dune/app/users/drielsma/spine-prod
-source configure_eaf.sh
+cd ~
+source /exp/dune/app/users/drielsma/spine-prod/configure_eaf.sh
 ```
 
 For reference, `configure_eaf.sh` does the EAF-specific runtime setup before sourcing the normal `spine-prod` configuration:
@@ -45,7 +45,7 @@ source /exp/dune/app/users/drielsma/spine-prod/configure.sh
 First do a dry run. This checks the config, source file, runtime profile, and generated job metadata without spending time on inference:
 
 ```bash
-./submit.py \
+/exp/dune/app/users/drielsma/spine-prod/submit.py \
   --config infer/generic/latest \
   --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root \
   --dry-run
@@ -61,7 +61,7 @@ Live questions:
 If the dry run looks correct and the instructor wants to run inference live, run the same file interactively through the configured container:
 
 ```bash
-./submit.py -I \
+/exp/dune/app/users/drielsma/spine-prod/submit.py -I \
   --interactive-runtime container \
   --config infer/generic/latest \
   --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root \
@@ -130,8 +130,8 @@ Useful runtime variables:
 If you need an interactive EAF GPU slot before running the command, use the current EAF GPU request procedure from the site documentation. Once the shell is on a GPU node, repeat the required setup:
 
 ```bash
-cd /exp/dune/app/users/drielsma/spine-prod
-source configure_eaf.sh
+cd ~
+source /exp/dune/app/users/drielsma/spine-prod/configure_eaf.sh
 ```
 
 Then run the dry run first, followed by the interactive command only if the dry run resolves the expected config and source file.
@@ -141,7 +141,7 @@ Then run the dry run first, followed by the interactive command only if the dry 
 At NERSC/S3DF-style sites, the same production request should be expressed through a site profile rather than the EAF interactive path:
 
 ```bash
-./submit.py \
+/path/to/spine-prod/submit.py \
   --config infer/generic/latest \
   --source /path/to/input.root \
   --profile s3df_ampere \
@@ -151,7 +151,7 @@ At NERSC/S3DF-style sites, the same production request should be expressed throu
 For real campaigns, prefer source lists over ad hoc single-file commands:
 
 ```bash
-./submit.py \
+/path/to/spine-prod/submit.py \
   --config infer/generic/latest \
   --source-list files.txt \
   --files-per-task 1 \
@@ -187,8 +187,8 @@ Read this as a versioned recipe:
 Current shorthand requests also work:
 
 ```bash
-./submit.py --config infer/generic/latest --source /path/to/input.root --dry-run
-./submit.py --config infer/icarus/latest --source /path/to/input.root --dry-run
+/exp/dune/app/users/drielsma/spine-prod/submit.py --config infer/generic/latest --source /path/to/input.root --dry-run
+/exp/dune/app/users/drielsma/spine-prod/submit.py --config infer/icarus/latest --source /path/to/input.root --dry-run
 ```
 
 These generate a concrete composite config at submission time. That generated config is part of the production provenance.
