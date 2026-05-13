@@ -2,13 +2,15 @@
 
 Use this as the instructor-facing menu of things participants can solve during the live session or take offline.
 
-## Live Exercises
+## Pre-Session Check
 
 ### 00: EAF Setup
 
 - Confirm the notebook kernel is **SPINE Apptainer**.
 - Run `import spine` and identify which container path Python is using.
 - Confirm `/exp/dune/data/users/drielsma/npc-ddas` is visible from the kernel.
+
+## Live Exercises
 
 ### 01: One-File Production
 

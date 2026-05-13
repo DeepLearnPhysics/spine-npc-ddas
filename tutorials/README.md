@@ -34,23 +34,24 @@ Full inference production is intentionally not part of the timed exercise. The a
 
 The lecture slides are here: https://docs.google.com/presentation/d/1ddDAj8LcYOIF1xPD5DhmeozyJ2q7fRmwE1Bbrzekbrs/edit?usp=sharing
 
+Setup is pre-work: students should complete `00_eaf_setup.md` before 11:00 and arrive with the SPINE Apptainer kernel ready.
+
 | Time | Segment | Material |
 | --- | --- | --- |
 | 11:00-11:45 | Lecture | SPINE object hierarchy, DUNE use cases, performance benchmarks, production context |
-| 11:45-12:00 | Setup check | `00_eaf_setup.md` |
-| 12:00-12:15 | One-file production | `01_production_and_config.md` required path only |
-| 12:15-12:30 | Start output inspection | `notebooks/02_read_spine_output.ipynb` |
+| 11:45-11:50 | One-file production | `01_production_and_config.md` required path only |
+| 11:50-12:20 | Output inspection | `notebooks/02_read_spine_output.ipynb` |
+| 12:20-12:30 | Spinal Tap / buffer | Open the same output visually, absorb setup drift |
 | 12:30-13:30 | Break | Lunch / reset |
-| 13:30-14:00 | Finish output inspection | `notebooks/02_read_spine_output.ipynb` plus Spinal Tap |
-| 14:00-14:45 | Matching and validation | `notebooks/03_event_selection.ipynb` |
-| 14:45-15:00 | Michel mini-analysis start / closeout | `notebooks/04_analysis_selection.ipynb` |
+| 13:30-14:15 | Matching and validation | `notebooks/03_event_selection.ipynb` |
+| 14:15-15:00 | Michel mini-analysis / closeout | `notebooks/04_analysis_selection.ipynb` |
 
-This keeps the lecture inside the first 90 minute block and leaves 2 hours and 15 minutes for hands-on work. The setup check and one-file production example should take no more than 30 minutes combined. If the session runs long, keep Notebook 4 as a guided teaser and move threshold scans, Spinal Tap galleries, and deeper `spine-prod` configuration details offline.
+This keeps the lecture inside the first 90 minute block and leaves 2 hours and 15 minutes for hands-on work. `00_eaf_setup.md` is pre-work, not a live agenda item. If the session runs long, drop or sharply compress Notebook 3 first, then use Notebook 4 as the analysis-oriented closeout. Threshold scans, Spinal Tap galleries, and deeper `spine-prod` configuration details are offline work.
 
 ## Notebook Scope
 
 0. `00_eaf_setup.md`
-   EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, and optional Spinal Tap setup.
+   Pre-session EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, and optional Spinal Tap setup.
 
 1. `01_production_and_config.md`
    Run one `spine-prod` example on `/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root`. EAF GPU requests, NERSC execution, and `spine.config` composition are optional reference sections.

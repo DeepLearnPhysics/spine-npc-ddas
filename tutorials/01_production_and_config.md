@@ -2,7 +2,7 @@
 
 Goal: run one small `spine-prod` example on one LArCV file, then understand just enough provenance to know what file the next notebook is reading.
 
-This is a terminal-oriented tutorial. Keep the live path short: one setup check, one dry run, and, if the instructor confirms the runtime is ready, one interactive production command.
+This is a terminal-oriented tutorial. Keep the live path to about 5 minutes: one dry run, plus an interactive command only if the instructor confirms the runtime is already ready.
 
 Required input at EAF:
 
