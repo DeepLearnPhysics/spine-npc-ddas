@@ -1,5 +1,6 @@
 spine-workshop-2026/
 spine-prod/
+tutorials/assets/
 .ipynb_checkpoints/
 __pycache__/
 *.pyc

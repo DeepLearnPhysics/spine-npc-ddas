@@ -52,9 +52,6 @@ import yaml
 
 # The Driver is the main SPINE entry point for reading one event at a time.
 from spine.driver import Driver
-
-# For richer config composition than this tutorial's minimal YAML readback.
-from spine.config import load_config_file
 '''
 
 SETUP_SAMPLE_TEMPLATE = '''
@@ -158,23 +155,35 @@ Now that the notebook knows which file to read, it loads the tutorial YAML confi
 The geometry override in this step is important: it tells SPINE which detector geometry description to attach when the chosen sample needs one."""
         ),
         code(SETUP_DRIVER),
-        md(
-            """## Config loading note: `safe_load` vs `load_config_file`
+                md(
+                        """## Config loading note: `safe_load` vs `load_config_file`
 
 The setup cell above uses `yaml.safe_load` because this tutorial config is deliberately tiny: it reads one YAML template, replaces `DATA_PATH`, and creates a normal Python dictionary.
 
 For real SPINE configuration work, prefer `spine.config.load_config_file`. That loader understands SPINE's config composition features, including `include`, `!include`, `!path`, `!download`, `override`, and removal operations. It is the better tool when you want to start from a production config and add or modify blocks in a notebook.
 
-For example:
+For example, you can load a base config and add a block from Python:
 
 ```python
 cfg = load_config_file("/path/to/base_config.yaml")
+cfg["geo"] = {"detector": DETECTOR}
 cfg["ana"] = {"save": save_cfg}
 driver = Driver(cfg)
 ```
 
+If you prefer to express the same geometry change in YAML instead of Python, you can make that edit directly in the config layer:
+
+```yaml
+include: /path/to/base_config.yaml
+
+geo:
+    detector: DETECTOR
+```
+
+That YAML overlay is equivalent in spirit to loading the base config and then setting `cfg["geo"]` from Python.
+
 Use `help(load_config_file)` when you want to explore its options interactively."""
-        ),
+                ),
     ]
 
 
@@ -189,7 +198,7 @@ write(
         md(
             """# 02 - Reading SPINE Output
 
-Goal: open the reconstructed SPINE HDF5 file from the one-file production example, inspect the high-level object hierarchy, and connect particle and interaction fields to analysis questions.
+Goal: open a reconstructed SPINE HDF5 file, inspect the high-level object hierarchy, and connect particle and interaction fields to analysis questions.
 
 This notebook is the workshop on-ramp. It moves step by step through the basic SPINE object model and the main event-level collections."""
         ),
@@ -213,19 +222,11 @@ You do not need to memorize the full object model. The goal is to learn how to i
 
 Run inside `ghcr.io/deeplearnphysics/spine:latest` (see `00_eaf_setup.md`).
 
-The previous tutorial showed how one file is produced from:
+Set the sample in the first code cell:
 
 ```python
-LARCV_FILE = "/exp/dune/data/users/drielsma/npc-ddas/larcv/generic/generic_test.root"
-```
-
-If that production output is available, point this notebook at it. Otherwise use one of the pre-produced detector samples under `/exp/dune/data/users/drielsma/npc-ddas/reco`.
-
-The default sample is:
-
-```python
-DETECTOR = "generic"
-SAMPLE_NAME = "generic_test"
+DETECTOR = "2x2"
+SAMPLE_NAME = "2x2_numi"
 GEOMETRY = DETECTOR
 ```
 
@@ -246,7 +247,7 @@ That keeps the workshop default aligned with the shared DUNE location while stil
 
 The HDF5 file should contain reconstructed particles and interactions and, for later validation, truth objects."""
         ),
-        *common_setup_cells("generic", "generic_test"),
+        *common_setup_cells("2x2", "2x2_numi"),
         md(
             """## The config we are actually using
 
@@ -487,7 +488,6 @@ Pick one interaction and answer:
 
 - Which primary particles does SPINE reconstruct?
 - Is the vertex close to the visually obvious interaction point?
-- Which fields would you trust for a first-pass analysis selection, and which require validation?
 - If you wanted the total deposited charge for this interaction, would you sum particle-level values or read a field from the interaction object? Why?"""
         ),
         code(
@@ -522,7 +522,7 @@ write(
 
 Goal: build a detector-agnostic Michel electron candidate table from reconstructed SPINE particles, estimate simple selection metrics when truth is available, and send interesting entries to Spinal Tap.
 
-Notebook 2 introduced the YAML config and the object-inspection workflow. Notebook 3 introduced truth matching and validation diagnostics. Here we turn those ingredients into a concrete analysis table.
+Notebook 1 introduced the YAML config and the object-inspection workflow. Here we build on that rather than repeating it.
 
 This notebook builds an analysis table step by step, starting from small object-level questions and ending with a compact selection."""
         ),
@@ -540,9 +540,9 @@ This is not a final detector-specific Michel selection. It is a compact analysis
         ),
         *common_setup_cells("2x2", "2x2_numi"),
         md(
-            """## Reuse the setup from Notebook 2
+            """## Reuse the setup from Notebook 1
 
-    This notebook uses the same readback config as Notebook 2. The full YAML appears there.
+    This notebook uses the same readback config as Notebook 1. The full YAML appears there.
 
 The new work in this notebook is the analysis logic, not the file-loading logic."""
         ),
@@ -822,9 +822,7 @@ The derived Michel table above is useful for teaching and for quick iteration. B
 This is a good division of labor:
 
 - use normal notebook code for derived quantities such as `attach_dist_cm` or custom selections;
-- use the save script for standard object attributes that already exist on particles and interactions.
-
-In a real notebook workflow, this is also where `load_config_file` becomes useful. You can load a base SPINE config with all of its includes and overrides resolved, then add or replace the `ana` block from Python before constructing a `Driver` or `AnaManager`."""
+- use the save script for standard object attributes that already exist on particles and interactions."""
         ),
         code(
             """# This config is a compact example of what you could put in a standalone YAML file.
@@ -932,16 +930,16 @@ write(
     "03_event_selection.ipynb",
     [
         md(
-            """# 03 - Matching, Validation, and Event Selection
+            """# 03 - Event Selection
 
 Goal: study the ingredients that drive neutrino event selection by checking PID, primary labeling, vertex quality, and matching-based diagnostics on a realistic sample.
 
-Notebook 2 covered SPINE object inspection. This notebook introduces truth matching and validation before we turn the objects into a specific analysis in Notebook 4."""
+Notebook 1 covered SPINE object inspection. Notebook 2 turned those objects into analysis tables. This notebook shifts to the question most people actually care about in practice: can you trust the objects well enough to build a neutrino event selection?"""
         ),
         md(
             """## What you should already know
 
-This notebook reuses the same file-loading setup as Notebook 2, without repeating the full YAML.
+This notebook reuses the same file-loading setup as Notebook 1, without repeating the full YAML.
 
 It defaults to the `nd-lar_lbnf` sample rather than `2x2_numi` because this detector/sample pair is a better place to discuss neutrino event-selection ingredients such as PID, primaries, and vertex quality.
 
@@ -1227,24 +1225,9 @@ The important shift here is from counting mistakes to diagnosing mistakes."""
 - Compare validation metrics before and after changing a production modifier or post-processing threshold.
 - Turn one recurring failure mode into a short debugging note with event IDs and screenshots."""
         ),
-        md(
-            """## Real-analysis checklist
-
-- Record the exact SPINE and `spine-prod` versions used to make the file.
-- Keep the inference config, weight path or tag, detector geometry, and input file provenance.
-- Validate object definitions before optimizing cuts.
-- Keep event-display debugging tied to table rows; screenshots without entry IDs are not reproducible."""
-        ),
     ],
 )
 
-for legacy_name in (
-    "01_read_spine_output.ipynb",
-    "02_analysis_selection.ipynb",
-    "02_event_selection.ipynb",
-    "03_analysis_selection.ipynb",
-    "03_truth_validation.ipynb",
-):
-    legacy_notebook = NB_DIR / legacy_name
-    if legacy_notebook.exists():
-        legacy_notebook.unlink()
+legacy_notebook = NB_DIR / "03_truth_validation.ipynb"
+if legacy_notebook.exists():
+    legacy_notebook.unlink()
