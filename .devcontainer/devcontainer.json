@@ -1,0 +1,15 @@
+{
+  "name": "SPINE tutorial",
+  "image": "ghcr.io/deeplearnphysics/spine:latest",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  "runArgs": ["--shm-size=8g"],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  }
+}

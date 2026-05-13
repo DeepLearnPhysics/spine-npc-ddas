@@ -1,6 +1,6 @@
 # 00 - EAF Setup
 
-Goal: get a SPINE-capable Jupyter kernel running on Fermilab's Elastic Analysis Facility (EAF), then optionally enable Spinal Tap from the same Jupyter session. This should take no more than 15 minutes during the live session.
+Goal: get a SPINE-capable Jupyter kernel running on Fermilab's Elastic Analysis Facility (EAF), then enable Spinal Tap from the same Jupyter session. This should take no more than 15 minutes and should be done ahead of the live session.
 
 These notes are adapted from the SPINE @ EAF setup slides:
 
@@ -104,7 +104,7 @@ SAMPLE_NAME = "generic_test"
 
 or another detector/sample pair provided for the session, for example `DETECTOR = "2x2"` and `SAMPLE_NAME = "2x2_numi"`.
 
-## Optional: Spinal Tap on EAF
+## Spinal Tap on EAF
 
 Spinal Tap is the event-display GUI used to inspect SPINE output.
 
