@@ -16,19 +16,19 @@ The notebooks assume reconstructed SPINE HDF5 files and companion LArCV files ar
 LARCV_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/larcv")
 HDF5_DATA_DIR = Path("/exp/dune/data/users/drielsma/npc-ddas/reco")
 DETECTOR = "generic"
-TAG = "tutorial"
+SAMPLE_NAME = "generic_test"
 ```
 
 The expected structure is:
 
 ```text
-HDF5_DATA_DIR/DETECTOR/DETECTOR_TAG_spine.hdf5
-LARCV_DATA_DIR/DETECTOR/DETECTOR_TAG.root
+LARCV_DATA_DIR/generic_test.root
+HDF5_DATA_DIR/DETECTOR/SAMPLE_NAME_spine.h5
 ```
 
 This is intentionally notebook-local rather than hidden in the Jupyter kernel launch script. It makes the EAF/Apptainer setup easier to inspect and lets students switch detector/tag/geometry explicitly.
 
-Full inference production is intentionally not part of the timed exercise. The agenda includes only a short `spine-prod` smoke test so students see where reconstructed HDF5 files come from before the notebooks switch to pre-produced outputs.
+Full inference production is intentionally not part of the timed exercise. The agenda includes one small `spine-prod` example on `/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root` so students see where reconstructed HDF5 files come from before the notebooks switch to object inspection and pre-produced outputs.
 
 ## Recommended Agenda
 
@@ -36,34 +36,33 @@ The lecture slides are here: https://docs.google.com/presentation/d/1ddDAj8LcYOI
 
 | Time | Segment | Material |
 | --- | --- | --- |
-| Before session | EAF setup | `00_eaf_setup.md` |
 | 11:00-11:45 | Lecture | SPINE object hierarchy, DUNE use cases, performance benchmarks, production context |
-| 11:45-11:55 | Reco smoke test | Short `spine-prod` dry-run or one-file demo after EAF setup |
-| 11:55-12:30 | Notebook 1 | `notebooks/01_read_spine_output.ipynb` plus a short Spinal Tap teaser |
+| 11:45-12:00 | Setup check | `00_eaf_setup.md` |
+| 12:00-12:15 | One-file production | `01_production_and_config.md` required path only |
+| 12:15-12:30 | Start output inspection | `notebooks/02_read_spine_output.ipynb` |
 | 12:30-13:30 | Break | Lunch / reset |
-| 13:30-14:05 | Notebook 2 | `notebooks/02_event_selection.ipynb` matching and validation |
-| 14:05-14:40 | Notebook 3 | `notebooks/03_analysis_selection.ipynb` Michel mini-analysis |
-| 14:40-14:55 | Production/config | `04_production_and_config.md` |
-| 14:55-15:00 | Checklist | Production files, versions, metadata, next steps |
+| 13:30-14:00 | Finish output inspection | `notebooks/02_read_spine_output.ipynb` plus Spinal Tap |
+| 14:00-14:45 | Matching and validation | `notebooks/03_event_selection.ipynb` |
+| 14:45-15:00 | Michel mini-analysis start / closeout | `notebooks/04_analysis_selection.ipynb` |
 
-This keeps the lecture inside the first 90 minute block and leaves 2 hours and 15 minutes for hands-on work. If the session runs long, treat the reco smoke test and production/config material as guided demos, then move the deeper `spine-prod` details offline.
+This keeps the lecture inside the first 90 minute block and leaves 2 hours and 15 minutes for hands-on work. The setup check and one-file production example should take no more than 30 minutes combined. If the session runs long, keep Notebook 4 as a guided teaser and move threshold scans, Spinal Tap galleries, and deeper `spine-prod` configuration details offline.
 
 ## Notebook Scope
 
 0. `00_eaf_setup.md`
-   EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, optional Spinal Tap setup, and a short `spine-prod` reco smoke test.
+   EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, and optional Spinal Tap setup.
 
-1. `01_read_spine_output.ipynb`
+1. `01_production_and_config.md`
+   Run one `spine-prod` example on `/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root`. EAF GPU requests, NERSC execution, and `spine.config` composition are optional reference sections.
+
+2. `02_read_spine_output.ipynb`
    Opens a reconstructed HDF5 file with `spine.driver.Driver`, inspects `RecoParticle`, `TruthParticle`, `RecoInteraction`, and `TruthInteraction` objects, and builds small tables of object fields.
 
-2. `02_event_selection.ipynb`
+3. `03_event_selection.ipynb`
    Uses SPINE truth-matching products to study the ingredients of neutrino event selection by building PID and primary-ID confusion matrices plus a vertex-resolution diagnostic for a small number of entries.
 
-3. `03_analysis_selection.ipynb`
+4. `04_analysis_selection.ipynb`
    Builds a detector-agnostic Michel-electron candidate table from reconstructed particles using semantic shape, interaction membership, closest-track attachment, and truth matching when available.
-
-4. `04_production_and_config.md`
-   A terminal-oriented production tutorial: how `spine-prod` organizes detector configs, how to read `include` stacks and modifiers, how `spine.config` resolves `include`, `!include`, `!path`, `!download`, `override`, and removal operations, and how to dry-run or interactively test a production command.
 
 ## Source Material Reused
 

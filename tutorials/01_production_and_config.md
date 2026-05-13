@@ -1,17 +1,87 @@
-# 04 - Production and Configuration
+# 01 - Run One SPINE Production Example
 
-Goal: understand how `spine-prod` turns validated SPINE configurations into reproducible production jobs, and how the `spine.config` package composes those configurations.
+Goal: run one small `spine-prod` example on one LArCV file, then understand just enough provenance to know what file the next notebook is reading.
 
-This is a terminal-oriented tutorial rather than a notebook. The useful activity is reading config files, resolving what they mean, and dry-running production commands.
+This is a terminal-oriented tutorial. Keep the live path short: one setup check, one dry run, and, if the instructor confirms the runtime is ready, one interactive production command.
+
+Required input at EAF:
+
+```text
+/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root
+```
+
+The output should be a reconstructed SPINE HDF5 file. Notebook 2 reads that output, with the option to switch to pre-produced files under:
+
+```text
+/exp/dune/data/users/drielsma/npc-ddas/reco
+```
 
 Useful references while working:
 
 - SPINE API browser: https://spine.readthedocs.io
 - `spine-prod` README and `QUICKREF.md`
-- SPINE config docs in the installed/container SPINE package
-- Python helpers: `help(load_config_file)`, `help(Driver)`, `dir(cfg_object)`
+- production examples in `spine-prod/config/infer`
+- Python helpers later in notebooks: `help(Driver)`, `dir(obj)`, `obj.as_dict().keys()`
 
-## Production Runtime Model
+## Required: Run One File
+
+Start in a `spine-prod` checkout:
+
+```bash
+cd spine-prod
+source configure.sh
+```
+
+On EAF, make the Apptainer runtime explicit:
+
+```bash
+export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/eaf.opensciencegrid.org/apptainer/bin/apptainer
+export SPINE_CONTAINER_RUNTIME_ARGS="--env LD_PRELOAD= --env LC_ALL=C.UTF-8"
+```
+
+First do a dry run. This checks the config, source file, runtime profile, and generated job metadata without spending time on inference:
+
+```bash
+./submit.py \
+  --config infer/generic/latest \
+  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root \
+  --dry-run
+```
+
+Live questions:
+
+- Which top-level config is being requested?
+- Which input file is being reconstructed?
+- Which SPINE container tag or image path would be used?
+- Where would the job metadata and resolved config be written?
+
+If the dry run looks correct and the instructor wants to run inference live, run the same file interactively through the configured container:
+
+```bash
+./submit.py -I \
+  --interactive-runtime container \
+  --config infer/generic/latest \
+  --source /exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root \
+  --set base.world_size=0
+```
+
+The live session should stop here. The rest of this page is reference material for people who want to understand production more deeply.
+
+## What To Record
+
+For the file you just made, record:
+
+- `spine-prod` git commit
+- SPINE container version/tag and, where relevant, local `.sif` path
+- top-level config request, for example `infer/generic/latest`
+- exact command line
+- input LArCV file
+- output HDF5 file
+- generated/resolved config path, if `submit.py` wrote one
+
+That is the minimal provenance needed before opening the HDF5 file in Notebook 2.
+
+## Optional: Production Runtime Model
 
 As of `spine-prod` 0.5.0+, production jobs no longer rely on a bundled SPINE git submodule as the normal runtime. Instead, `spine-prod` is the production orchestrator and SPINE itself is supplied by a tagged pre-packaged container image.
 
@@ -52,14 +122,47 @@ Useful runtime variables:
 - `SPINE_CONTAINER_RUNTIME_ARGS`: optional extra Apptainer/Singularity flags.
 - `SPINE_CONTAINER_PLATFORM`: Docker/Podman platform override for interactive fallback.
 
-Live question: what should an analysis note record now: a SPINE git checkout, or the `spine-prod` commit plus the exact SPINE container version/tag?
+## Optional: Request a GPU at EAF
 
-## Live Exercise 1: Find the Config Stack
+If you need an interactive EAF GPU slot before running the command, use the current EAF GPU request procedure from the site documentation. Once the shell is on a GPU node, repeat the required setup:
+
+```bash
+cd spine-prod
+source configure.sh
+export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/eaf.opensciencegrid.org/apptainer/bin/apptainer
+export SPINE_CONTAINER_RUNTIME_ARGS="--env LD_PRELOAD= --env LC_ALL=C.UTF-8"
+```
+
+Then run the dry run first, followed by the interactive command only if the dry run resolves the expected config and source file.
+
+## Optional: Run at NERSC
+
+At NERSC/S3DF-style sites, the same production request should be expressed through a site profile rather than the EAF interactive path:
+
+```bash
+./submit.py \
+  --config infer/generic/latest \
+  --source /path/to/input.root \
+  --profile s3df_ampere \
+  --dry-run
+```
+
+For real campaigns, prefer source lists over ad hoc single-file commands:
+
+```bash
+./submit.py \
+  --config infer/generic/latest \
+  --source-list files.txt \
+  --files-per-task 1 \
+  --profile s3df_ampere \
+  --dry-run
+```
+
+## Optional: Compose Configurations
 
 Start from a top-level production config, for example:
 
 ```bash
-cd spine-prod
 sed -n '1,80p' config/infer/generic/full_chain_240805.yaml
 ```
 
@@ -80,26 +183,18 @@ Read this as a versioned recipe:
 - `model`: network architecture and weights
 - `post`: post-processing, object builders, matching, and analysis-facing products
 
-Live question: which file would you edit or override to change the input file list? Which file owns the model weights?
-
 Current shorthand requests also work:
 
 ```bash
-./submit.py --config infer/generic --source /path/to/input.root --dry-run
+./submit.py --config infer/generic/latest --source /path/to/input.root --dry-run
 ./submit.py --config infer/icarus/latest --source /path/to/input.root --dry-run
 ```
 
 These generate a concrete composite config at submission time. That generated config is part of the production provenance.
 
-## Live Exercise 2: Read an Override Block
+## Optional: Overrides, Downloads, and Modifiers
 
-Open a model component:
-
-```bash
-sed -n '1,120p' config/infer/generic/model/model_240805.yaml
-```
-
-The file includes common model defaults, then applies targeted dot-notation overrides:
+Model components often include common defaults, then apply targeted dot-notation overrides:
 
 ```yaml
 include: model_common.yaml
@@ -118,22 +213,12 @@ Key ideas:
 - Dot notation means `model.modules.graph_spice...` is edited in place.
 - `!download` resolves to a cached local file path after downloading and hash-checking the remote asset.
 
-Live question: why is this safer than pasting an absolute local checkpoint path into every production config?
+Modifiers transform a base production request. For example, a data modifier might:
 
-## Live Exercise 3: Modifiers
-
-Open a modifier:
-
-```bash
-sed -n '1,120p' config/infer/generic/modifier/data/mod_data_common.yaml
-```
-
-This kind of file transforms a simulation config into data mode:
-
-- removes truth parsers from `io.loader.dataset.schema`
-- removes truth output products from `io.writer.keys`
-- switches `build` and `post` processors to reco-only mode
-- removes truth-matching processors
+- remove truth parsers from `io.loader.dataset.schema`
+- remove truth output products from `io.writer.keys`
+- switch `build` and `post` processors to reco-only mode
+- remove truth-matching processors
 
 The removal syntax is compact:
 
@@ -147,58 +232,6 @@ override:
     - match
 ```
 
-Live question: what would break if you ran a data file with an MC config that still expects truth labels?
-
-## Live Exercise 4: Dry Run a Production Command
-
-Use `submit.py --dry-run` to inspect what would be submitted without launching jobs:
-
-```bash
-./submit.py \
-  --config infer/generic/latest \
-  --source /path/to/input.root \
-  --profile s3df_ampere \
-  --dry-run
-```
-
-For a real small test, use interactive mode:
-
-```bash
-./submit.py -I \
-  --config infer/generic/latest \
-  --source /path/to/input.root
-```
-
-Interactive mode normally uses the `spine` executable on `PATH`. If that is unavailable, it can fall back to the configured container. You can force container-backed interactive execution:
-
-```bash
-./submit.py -I \
-  --interactive-runtime container \
-  --config infer/generic/latest \
-  --source /path/to/input.root \
-  --set base.world_size=0
-```
-
-On EAF, the Apptainer executable and extra runtime flags may need to be explicit:
-
-```bash
-export SPINE_CONTAINER_RUNTIME_BIN=/cvmfs/eaf.opensciencegrid.org/apptainer/bin/apptainer
-export SPINE_CONTAINER_RUNTIME_ARGS="--env LD_PRELOAD= --env LC_ALL=C.UTF-8"
-```
-
-For local debugging against an unreleased SPINE checkout, `spine-prod` still has an escape hatch:
-
-```bash
-./submit.py \
-  --spine-path /path/to/spine \
-  -I --interactive-runtime local \
-  --config infer/generic/latest \
-  --source /path/to/input.root \
-  --set base.world_size=0
-```
-
-That is a debugging path, not the default production model.
-
 Useful production switches:
 
 - `--source-list files.txt`: preferred for reproducible file lists
@@ -211,7 +244,7 @@ Useful production switches:
 - `--interactive-runtime local|container`: choose local or container-backed interactive execution
 - `--spine-path /path/to/spine`: use an unreleased checkout for debugging
 
-## `spine.config` Cheat Sheet
+## Optional: `spine.config` Cheat Sheet
 
 Main entry point:
 
@@ -246,22 +279,3 @@ Download cache:
 - override: `$SPINE_CACHE_DIR`
 
 The `!download` cache handles model weights and other remote assets. This is separate from the SPINE software runtime, which production now gets from the configured container image.
-
-## Production Checklist
-
-Before accepting a production HDF5 file for analysis, preserve:
-
-- `spine-prod` git commit
-- SPINE container version/tag and, where relevant, local `.sif` path
-- top-level config path and generated composite config, if modifiers/latest were used
-- command line, profile, and source list
-- model weight URL/hash or cached path
-- input file provenance and detector geometry assumptions
-- output HDF5 location and any skim/lite modifiers
-
-## Offline Extensions
-
-- Write a tiny modifier that changes only output writer keys to create an analysis-lite file.
-- Compare `latest` composition with a pinned versioned config for one detector.
-- Add a dry-run CI check that loads a config and preloads all `!download` assets.
-- Build a one-page detector-specific production recipe for your analysis group.

@@ -1,6 +1,6 @@
 # 00 - EAF Setup
 
-Goal: get a SPINE-capable Jupyter kernel running on Fermilab's Elastic Analysis Facility (EAF), then optionally enable Spinal Tap from the same Jupyter session.
+Goal: get a SPINE-capable Jupyter kernel running on Fermilab's Elastic Analysis Facility (EAF), then optionally enable Spinal Tap from the same Jupyter session. This should take no more than 15 minutes during the live session.
 
 These notes are adapted from the SPINE @ EAF setup slides:
 
@@ -21,7 +21,7 @@ https://eafdocs.fnal.gov/master/index.html
 1. Open https://eaf.fnal.gov/
 2. Log in through the standard FNAL SSO page.
 3. On the JupyterHub landing page, start a server.
-4. For this tutorial, select a CPU-only session unless instructed otherwise.
+4. For this tutorial setup check, select a CPU-only session unless instructed otherwise.
 5. Scroll to the bottom and press **Start**.
 
 The default EAF notebook environment does not include the full SPINE software stack. The tutorial notebooks should run in a Jupyter kernel that launches Python inside a SPINE Apptainer container.
@@ -91,18 +91,18 @@ If that imports successfully, the tutorial notebooks can use the same kernel.
 The notebooks expect the shared tutorial data layout:
 
 ```text
-/exp/dune/data/users/drielsma/npc-ddas/larcv/DETECTOR/DETECTOR_TAG.root
-/exp/dune/data/users/drielsma/npc-ddas/reco/DETECTOR/DETECTOR_TAG_spine.hdf5
+/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root
+/exp/dune/data/users/drielsma/npc-ddas/reco/DETECTOR/SAMPLE_NAME_spine.h5
 ```
 
-At the top of each notebook, choose:
+Tutorial 1 runs the single LArCV file above. Tutorial 2 and later notebooks read reconstructed HDF5 files. At the top of each notebook, choose:
 
 ```python
-DETECTOR = "2x2"
-TAG = "numi"
+DETECTOR = "generic"
+SAMPLE_NAME = "generic_test"
 ```
 
-or another detector/tag pair provided for the session.
+or another detector/sample pair provided for the session, for example `DETECTOR = "2x2"` and `SAMPLE_NAME = "2x2_numi"`.
 
 ## Optional: Spinal Tap on EAF
 

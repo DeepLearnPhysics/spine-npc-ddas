@@ -7,9 +7,10 @@ Start with [tutorials/README.md](tutorials/README.md).
 The live path is:
 
 1. Introduce SPINE reconstruction and production context in the [lecture slides](https://docs.google.com/presentation/d/1ddDAj8LcYOIF1xPD5DhmeozyJ2q7fRmwE1Bbrzekbrs/edit?usp=sharing).
-2. Read reconstructed SPINE HDF5 output.
-3. Learn truth matching and validation diagnostics.
-4. Build and debug a detector-agnostic Michel-electron mini-analysis.
-5. Learn the `spine-prod` production/configuration workflow.
+2. Confirm the EAF/Jupyter setup.
+3. Run one small `spine-prod` production example.
+4. Read the reconstructed SPINE HDF5 output and inspect it in Spinal Tap.
+5. Learn truth matching and validation diagnostics.
+6. Build and debug a detector-agnostic Michel-electron mini-analysis.
 
 The materials are designed for `ghcr.io/deeplearnphysics/spine:latest`.

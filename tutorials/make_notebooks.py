@@ -164,12 +164,12 @@ def write(name: str, cells: list[dict]) -> None:
 
 
 write(
-    "01_read_spine_output.ipynb",
+    "02_read_spine_output.ipynb",
     [
         md(
-            """# 01 - Reading SPINE Output
+            """# 02 - Reading SPINE Output
 
-Goal: open a reconstructed SPINE HDF5 file, inspect the high-level object hierarchy, and connect particle and interaction fields to analysis questions.
+Goal: open the reconstructed SPINE HDF5 file from the one-file production example, inspect the high-level object hierarchy, and connect particle and interaction fields to analysis questions.
 
 This notebook is the workshop on-ramp. It moves step by step through the basic SPINE object model and the main event-level collections."""
         ),
@@ -193,11 +193,19 @@ You do not need to memorize the full object model. The goal is to learn how to i
 
 Run inside `ghcr.io/deeplearnphysics/spine:latest` (see `00_eaf_setup.md`).
 
-Set the sample in the first code cell:
+The previous tutorial showed how one file is produced from:
 
 ```python
-DETECTOR = "2x2"
-SAMPLE_NAME = "2x2_numi"
+LARCV_FILE = "/exp/dune/data/users/drielsma/npc-ddas/larcv/generic_test.root"
+```
+
+If that production output is available, point this notebook at it. Otherwise use one of the pre-produced detector samples under `/exp/dune/data/users/drielsma/npc-ddas/reco`.
+
+The default sample is:
+
+```python
+DETECTOR = "generic"
+SAMPLE_NAME = "generic_test"
 GEOMETRY = DETECTOR
 ```
 
@@ -218,7 +226,7 @@ That keeps the workshop default aligned with the shared DUNE location while stil
 
 The HDF5 file should contain reconstructed particles and interactions and, for later validation, truth objects."""
         ),
-        *common_setup_cells("2x2", "2x2_numi"),
+        *common_setup_cells("generic", "generic_test"),
         md(
             """## The config we are actually using
 
@@ -487,14 +495,14 @@ This short tutorial starts from HDF5 output. For real production, `spine-prod` s
 
 
 write(
-    "03_analysis_selection.ipynb",
+    "04_analysis_selection.ipynb",
     [
         md(
-            """# 03 - Michel Electron Mini-Analysis
+            """# 04 - Michel Electron Mini-Analysis
 
 Goal: build a detector-agnostic Michel electron candidate table from reconstructed SPINE particles, estimate simple selection metrics when truth is available, and send interesting entries to Spinal Tap.
 
-Notebook 1 introduced the YAML config and the object-inspection workflow. Notebook 2 introduced truth matching and validation diagnostics. Here we turn those ingredients into a concrete analysis table.
+Notebook 2 introduced the YAML config and the object-inspection workflow. Notebook 3 introduced truth matching and validation diagnostics. Here we turn those ingredients into a concrete analysis table.
 
 This notebook builds an analysis table step by step, starting from small object-level questions and ending with a compact selection."""
         ),
@@ -512,9 +520,9 @@ This is not a final detector-specific Michel selection. It is a compact analysis
         ),
         *common_setup_cells("2x2", "2x2_numi"),
         md(
-            """## Reuse the setup from Notebook 1
+            """## Reuse the setup from Notebook 2
 
-    This notebook uses the same readback config as Notebook 1. The full YAML appears there.
+    This notebook uses the same readback config as Notebook 2. The full YAML appears there.
 
 The new work in this notebook is the analysis logic, not the file-loading logic."""
         ),
@@ -899,19 +907,19 @@ Choose one:
 
 
 write(
-    "02_event_selection.ipynb",
+    "03_event_selection.ipynb",
     [
         md(
-            """# 02 - Matching, Validation, and Event Selection
+            """# 03 - Matching, Validation, and Event Selection
 
 Goal: study the ingredients that drive neutrino event selection by checking PID, primary labeling, vertex quality, and matching-based diagnostics on a realistic sample.
 
-Notebook 1 covered SPINE object inspection. This notebook introduces truth matching and validation before we turn the objects into a specific analysis in Notebook 3."""
+Notebook 2 covered SPINE object inspection. This notebook introduces truth matching and validation before we turn the objects into a specific analysis in Notebook 4."""
         ),
         md(
             """## What you should already know
 
-This notebook reuses the same file-loading setup as Notebook 1, without repeating the full YAML.
+This notebook reuses the same file-loading setup as Notebook 2, without repeating the full YAML.
 
 It defaults to the `nd-lar_lbnf` sample rather than `2x2_numi` because this detector/sample pair is a better place to discuss neutrino event-selection ingredients such as PID, primaries, and vertex quality.
 
@@ -1193,7 +1201,7 @@ The important shift here is from counting mistakes to diagnosing mistakes."""
             """## Offline extensions
 
 - Split PID confusion by particle length, deposited charge, containment, or detector module boundary.
-- Build efficiency and purity curves for the selection in Notebook 3.
+- Build efficiency and purity curves for the selection in Notebook 4.
 - Compare validation metrics before and after changing a production modifier or post-processing threshold.
 - Turn one recurring failure mode into a short debugging note with event IDs and screenshots."""
         ),
@@ -1209,8 +1217,10 @@ The important shift here is from counting mistakes to diagnosing mistakes."""
 )
 
 for legacy_name in (
+    "01_read_spine_output.ipynb",
     "02_analysis_selection.ipynb",
-    "03_event_selection.ipynb",
+    "02_event_selection.ipynb",
+    "03_analysis_selection.ipynb",
     "03_truth_validation.ipynb",
 ):
     legacy_notebook = NB_DIR / legacy_name
