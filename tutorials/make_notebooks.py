@@ -52,6 +52,9 @@ import yaml
 
 # The Driver is the main SPINE entry point for reading one event at a time.
 from spine.driver import Driver
+
+# For richer config composition than this tutorial's minimal YAML readback.
+from spine.config import load_config_file
 '''
 
 SETUP_SAMPLE_TEMPLATE = '''
@@ -155,6 +158,23 @@ Now that the notebook knows which file to read, it loads the tutorial YAML confi
 The geometry override in this step is important: it tells SPINE which detector geometry description to attach when the chosen sample needs one."""
         ),
         code(SETUP_DRIVER),
+        md(
+            """## Config loading note: `safe_load` vs `load_config_file`
+
+The setup cell above uses `yaml.safe_load` because this tutorial config is deliberately tiny: it reads one YAML template, replaces `DATA_PATH`, and creates a normal Python dictionary.
+
+For real SPINE configuration work, prefer `spine.config.load_config_file`. That loader understands SPINE's config composition features, including `include`, `!include`, `!path`, `!download`, `override`, and removal operations. It is the better tool when you want to start from a production config and add or modify blocks in a notebook.
+
+For example:
+
+```python
+cfg = load_config_file("/path/to/base_config.yaml")
+cfg["ana"] = {"save": save_cfg}
+driver = Driver(cfg)
+```
+
+Use `help(load_config_file)` when you want to explore its options interactively."""
+        ),
     ]
 
 
@@ -802,7 +822,9 @@ The derived Michel table above is useful for teaching and for quick iteration. B
 This is a good division of labor:
 
 - use normal notebook code for derived quantities such as `attach_dist_cm` or custom selections;
-- use the save script for standard object attributes that already exist on particles and interactions."""
+- use the save script for standard object attributes that already exist on particles and interactions.
+
+In a real notebook workflow, this is also where `load_config_file` becomes useful. You can load a base SPINE config with all of its includes and overrides resolved, then add or replace the `ana` block from Python before constructing a `Driver` or `AnaManager`."""
         ),
         code(
             """# This config is a compact example of what you could put in a standalone YAML file.
