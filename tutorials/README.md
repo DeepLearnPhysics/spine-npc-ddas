@@ -1,6 +1,6 @@
 # SPINE Short Tutorial Set
 
-This is a compact tutorial sequence for a 2 to 2.5 hour hands-on block after a general SPINE introduction. It is distilled from `DeepLearnPhysics/spine-workshop-2026`, especially the HDF5 readback, PID, primary/vertex, and validation material, with a new production/configuration tutorial based on `DeepLearnPhysics/spine-prod`.
+This is a compact tutorial sequence for a 3 hour SPINE session: a 45 minute lecture plus 2 hours and 15 minutes of hands-on work. It is distilled from `DeepLearnPhysics/spine-workshop-2026`, especially the HDF5 readback, PID, primary/vertex, and validation material, with a new production/configuration tutorial based on `DeepLearnPhysics/spine-prod`.
 
 ## Runtime
 
@@ -28,29 +28,30 @@ LARCV_DATA_DIR/DETECTOR/DETECTOR_TAG.root
 
 This is intentionally notebook-local rather than hidden in the Jupyter kernel launch script. It makes the EAF/Apptainer setup easier to inspect and lets students switch detector/tag/geometry explicitly.
 
-Inference is intentionally not part of the timed exercise. The first notebook includes a short discussion cell pointing to `spine-prod` as the production layer that owns validated inference configs, model weights, and campaign bookkeeping.
+Full inference production is intentionally not part of the timed exercise. The agenda includes only a short `spine-prod` smoke test so students see where reconstructed HDF5 files come from before the notebooks switch to pre-produced outputs.
 
 ## Recommended Agenda
+
+The lecture slides are here: https://docs.google.com/presentation/d/1ddDAj8LcYOIF1xPD5DhmeozyJ2q7fRmwE1Bbrzekbrs/edit?usp=sharing
 
 | Time | Segment | Material |
 | --- | --- | --- |
 | Before session | EAF setup | `00_eaf_setup.md` |
-| 0:00-0:30 | Lecture intro | SPINE object hierarchy, DUNE use cases, common failure modes |
-| 0:30-1:05 | Notebook 1 | `notebooks/01_read_spine_output.ipynb` |
-| 1:05-1:25 | Spinal Tap teaser | Event display from the same HDF5 file |
-| 1:25-1:35 | Break / reset | Leave time for environment issues |
-| 1:35-2:10 | Notebook 2 | `notebooks/02_event_selection.ipynb` matching and validation |
-| 2:10-2:45 | Notebook 3 | `notebooks/03_analysis_selection.ipynb` Michel mini-analysis |
-| 2:45-3:05 | Spinal Tap debugging | Open selected/failing events from Notebook 3 |
-| 3:05-3:25 | Production/config | `04_production_and_config.md` |
-| 3:25-3:30 | Checklist | Production files, versions, metadata, next steps |
+| 11:00-11:45 | Lecture | SPINE object hierarchy, DUNE use cases, performance benchmarks, production context |
+| 11:45-11:55 | Reco smoke test | Short `spine-prod` dry-run or one-file demo after EAF setup |
+| 11:55-12:30 | Notebook 1 | `notebooks/01_read_spine_output.ipynb` plus a short Spinal Tap teaser |
+| 12:30-13:30 | Break | Lunch / reset |
+| 13:30-14:05 | Notebook 2 | `notebooks/02_event_selection.ipynb` matching and validation |
+| 14:05-14:40 | Notebook 3 | `notebooks/03_analysis_selection.ipynb` Michel mini-analysis |
+| 14:40-14:55 | Production/config | `04_production_and_config.md` |
+| 14:55-15:00 | Checklist | Production files, versions, metadata, next steps |
 
-If the hands-on block is closer to 2 hours, keep Notebook 3 as a guided teaser and move most Spinal Tap debugging plus production/config details offline.
+This keeps the lecture inside the first 90 minute block and leaves 2 hours and 15 minutes for hands-on work. If the session runs long, treat the reco smoke test and production/config material as guided demos, then move the deeper `spine-prod` details offline.
 
 ## Notebook Scope
 
 0. `00_eaf_setup.md`
-   EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, and optional Spinal Tap setup.
+   EAF login, SPINE Apptainer Jupyter kernel setup, import check, shared tutorial data layout, optional Spinal Tap setup, and a short `spine-prod` reco smoke test.
 
 1. `01_read_spine_output.ipynb`
    Opens a reconstructed HDF5 file with `spine.driver.Driver`, inspects `RecoParticle`, `TruthParticle`, `RecoInteraction`, and `TruthInteraction` objects, and builds small tables of object fields.
